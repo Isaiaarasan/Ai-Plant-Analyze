@@ -1,13 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, createBrowserRouter, RouterProvider } from 'react-router-dom';
-// Import future flags to fix React Router warnings
 import { UNSAFE_DataRouterContext, UNSAFE_DataRouterStateContext } from 'react-router-dom';
 import Navbar from './components/Navbar';
 
-// Import CSS
 import './styles/global.css';
 
-// Import pages
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
@@ -18,6 +15,7 @@ import DiscussionPage from './pages/DiscussionPage';
 import AboutPage from './pages/AboutPage';
 import FeaturesPage from './pages/FeaturesPage';
 import ProfilePage from './pages/ProfilePage';
+import Chatbox from './components/Chatbox';
 
 // Auth guard for protected routes
 const ProtectedRoute = ({ children }) => {
@@ -63,6 +61,11 @@ function App() {
         <Route path="/profile" element={
           <ProtectedRoute>
             <ProfilePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/Chatbox" element={
+          <ProtectedRoute>
+            <Chatbox />
           </ProtectedRoute>
         } />
         <Route path="*" element={<Navigate to="/" replace />} />
