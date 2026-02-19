@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import './FeaturesPage.css';
+
 
 const FeaturesPage = () => {
   return (
@@ -162,7 +162,7 @@ const FeaturesPage = () => {
           <div className="unique-features-grid">
             <div className="unique-feature">
               <div className="unique-feature-icon">
-              
+
               </div>
               <div className="unique-feature-content">
                 <h3>Offline Mode</h3>
@@ -180,7 +180,7 @@ const FeaturesPage = () => {
 
             <div className="unique-feature">
               <div className="unique-feature-icon">
-                
+
               </div>
               <div className="unique-feature-content">
                 <h3>Community Forum</h3>
@@ -190,7 +190,7 @@ const FeaturesPage = () => {
 
             <div className="unique-feature">
               <div className="unique-feature-icon">
-               
+
               </div>
               <div className="unique-feature-content">
                 <h3>Gamification</h3>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import plantService from '../services/plantService';
-import './ForumPage.css';
+
 
 const ForumPage = () => {
   const navigate = useNavigate();
@@ -22,11 +22,11 @@ const ForumPage = () => {
       navigate('/login');
       return;
     }
-    
+
     setCurrentUser(JSON.parse(userJson));
     fetchPosts();
   }, [navigate]);
-  
+
   const fetchPosts = async () => {
     setIsLoading(true);
     try {
@@ -38,7 +38,7 @@ const ForumPage = () => {
       setIsLoading(false);
     }
   };
-  
+
   const handleLike = async (postId, e) => {
     e.stopPropagation();
     try {
@@ -70,16 +70,16 @@ const ForumPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     const formErrors = validateForm();
     if (Object.keys(formErrors).length > 0) {
       setErrors(formErrors);
       return;
     }
-    
+
     // Clear any previous errors
     setErrors({});
-    
+
     try {
       if (editingPost) {
         // Update existing post
@@ -95,10 +95,10 @@ const ForumPage = () => {
           content: newPost.content
         });
       }
-      
+
       // Refresh posts
       fetchPosts();
-      
+
       // Reset form
       setNewPost({
         title: '',
@@ -108,7 +108,7 @@ const ForumPage = () => {
       console.error('Error saving post:', error);
     }
   };
-  
+
   const handleEdit = (post) => {
     setEditingPost(post);
     setNewPost({
@@ -117,7 +117,7 @@ const ForumPage = () => {
     });
     window.scrollTo(0, 0);
   };
-  
+
   const handleDelete = async (postId) => {
     if (window.confirm('Are you sure you want to delete this post?')) {
       try {
@@ -128,7 +128,7 @@ const ForumPage = () => {
       }
     }
   };
-  
+
   const handleCancelEdit = () => {
     setEditingPost(null);
     setNewPost({
@@ -146,104 +146,137 @@ const ForumPage = () => {
   };
 
   return (
-    <div className="forum-page">
-      <div className="container">
-        <div className="forum-header">
-          <h1>Community Forum</h1>
-          <p>Connect with fellow plant enthusiasts, share experiences, and get advice</p>
+    <div className="min-h-[calc(100vh-70px)] bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Community Forum</h1>
+          <p className="text-gray-500">Connect with fellow plant enthusiasts, share experiences, and get advice</p>
         </div>
 
-        <div className="forum-content">
-          <div className="new-post-section">
-            <h2>{editingPost ? 'Edit Post' : 'Create a New Post'}</h2>
-            <form className="new-post-form" onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label htmlFor="title">Title</label>
-                <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  value={newPost.title}
-                  onChange={handleChange}
-                  placeholder="What's your topic?"
-                />
-                {errors.title && <span className="error-text">{errors.title}</span>}
-              </div>
-              <div className="form-group">
-                <label htmlFor="content">Content</label>
-                <textarea
-                  id="content"
-                  name="content"
-                  value={newPost.content}
-                  onChange={handleChange}
-                  rows="5"
-                  placeholder="Share your thoughts, questions, or experiences..."
-                ></textarea>
-                {errors.content && <span className="error-text">{errors.content}</span>}
-              </div>
-              <div className="form-actions">
-                {editingPost && (
-                  <button 
-                    type="button" 
-                    className="btn btn-outline" 
-                    onClick={handleCancelEdit}
-                  >
-                    Cancel
+        <div className="grid grid-cols-1 lg:grid-cols-[350px_1fr] gap-8">
+          {/* New Post Section / Sidebar */}
+          <div className="lg:order-1">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 sticky top-24">
+              <h2 className="text-xl font-bold text-gray-800 mb-6">{editingPost ? 'Edit Post' : 'Create a New Post'}</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                  <input
+                    type="text"
+                    id="title"
+                    name="title"
+                    value={newPost.title}
+                    onChange={handleChange}
+                    placeholder="What's your topic?"
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors ${errors.title ? 'border-red-300' : 'border-gray-200'}`}
+                  />
+                  {errors.title && <span className="text-xs text-red-500 mt-1 block">{errors.title}</span>}
+                </div>
+                <div>
+                  <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">Content</label>
+                  <textarea
+                    id="content"
+                    name="content"
+                    value={newPost.content}
+                    onChange={handleChange}
+                    rows="5"
+                    placeholder="Share your thoughts, questions, or experiences..."
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors resize-none ${errors.content ? 'border-red-300' : 'border-gray-200'}`}
+                  ></textarea>
+                  {errors.content && <span className="text-xs text-red-500 mt-1 block">{errors.content}</span>}
+                </div>
+                <div className="flex gap-3 pt-2">
+                  {editingPost && (
+                    <button
+                      type="button"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={handleCancelEdit}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                  <button type="submit" className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary-dark transition-colors cursor-pointer shadow-sm">
+                    {editingPost ? 'Update Post' : 'Post to Forum'}
                   </button>
-                )}
-                <button type="submit" className="btn btn-primary">
-                  {editingPost ? 'Update Post' : 'Post to Forum'}
-                </button>
-              </div>
-            </form>
+                </div>
+              </form>
+            </div>
           </div>
 
-          <div className="posts-section">
-            <h2>Recent Discussions</h2>
+          {/* Posts Section */}
+          <div className="lg:order-2">
+            <h2 className="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+              Recent Discussions
+              <span className="text-sm font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">{posts.length}</span>
+            </h2>
+
             {isLoading ? (
-              <div className="loading-spinner">Loading...</div>
+              <div className="flex flex-col items-center justify-center py-20 text-gray-500">
+                <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin mb-4"></div>
+                <p>Loading discussions...</p>
+              </div>
             ) : posts.length > 0 ? (
-              <div className="posts-grid">
+              <div className="space-y-6">
                 {posts.map(post => (
-                  <div key={post._id} className="post-card">
-                    <div className="post-header">
-                      <h3 className="post-title">{post.title}</h3>
-                      <div className="post-meta">
-                        <span className="post-author">{post.author?.username || 'Unknown User'}</span>
-                        <span className="post-date">{formatDate(new Date(post.createdAt))}</span>
+                  <div key={post._id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <div className="p-6 border-b border-gray-50">
+                      <h3 className="text-lg font-bold text-gray-800 mb-2 hover:text-primary transition-colors cursor-pointer" onClick={() => navigate(`/forum/${post._id}`)}>
+                        {post.title}
+                      </h3>
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">
+                            {(post.author?.username || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <span>{post.author?.username || 'Unknown User'}</span>
+                        </div>
+                        <span>{formatDate(new Date(post.createdAt))}</span>
                       </div>
                     </div>
-                    <div className="post-content">
-                      <p>{post.content}</p>
+
+                    <div className="p-6">
+                      <p className="text-gray-600 leading-relaxed line-clamp-3 mb-4">{post.content}</p>
+                      <button className="text-primary hover:text-primary-dark text-sm font-medium hover:underline inline-flex items-center gap-1 cursor-pointer" onClick={() => navigate(`/forum/${post._id}`)}>
+                        Read more
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                      </button>
                     </div>
-                    <div className="post-footer">
-                      <div className="post-stats">
-                        <button 
-                          className={`post-likes ${post.likes?.some(like => like.user === currentUser?.id) ? 'liked' : ''}`}
+
+                    <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-between items-center flex-wrap gap-4">
+                      <div className="flex items-center gap-4">
+                        <button
+                          className={`flex items-center gap-1.5 text-sm font-medium transition-colors cursor-pointer px-3 py-1.5 rounded-lg hover:bg-white ${post.likes?.some(like => like.user === currentUser?.id)
+                            ? 'text-primary'
+                            : 'text-gray-500 hover:text-primary'
+                            }`}
                           onClick={(e) => handleLike(post._id, e)}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" className={`w-4 h-4 ${post.likes?.some(like => like.user === currentUser?.id) ? 'fill-current' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"></path>
                           </svg>
                           {post.likes?.length || 0} Likes
                         </button>
-                        <button 
-                          className="post-comments"
+                        <button
+                          className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-primary transition-colors cursor-pointer px-3 py-1.5 rounded-lg hover:bg-white"
                           onClick={() => navigate(`/forum/${post._id}`)}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
                           </svg>
                           {post.comments?.length || 0} Comments
                         </button>
                       </div>
-                      <div className="post-actions">
-                        <button className="btn btn-primary btn-sm" onClick={() => navigate(`/forum/${post._id}`)}>View Discussion</button>
+
+                      <div className="flex items-center gap-2">
                         {currentUser && post.author && currentUser.id === post.author._id && (
-                          <div className="author-actions">
-                            <button className="btn btn-edit btn-sm" onClick={() => handleEdit(post)}>Edit</button>
-                            <button className="btn btn-delete btn-sm" onClick={() => handleDelete(post._id)}>Delete</button>
-                          </div>
+                          <>
+                            <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer" onClick={() => handleEdit(post)} title="Edit">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                            </button>
+                            <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer" onClick={() => handleDelete(post._id)} title="Delete">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -251,14 +284,14 @@ const ForumPage = () => {
                 ))}
               </div>
             ) : (
-              <div className="empty-posts">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <div className="flex flex-col items-center justify-center py-20 bg-white rounded-xl shadow-sm border border-gray-100 text-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-gray-300 mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <line x1="12" y1="8" x2="12" y2="12"></line>
                   <line x1="12" y1="16" x2="12.01" y2="16"></line>
                 </svg>
-                <h3>No discussions yet</h3>
-                <p>Be the first to start a discussion in our community forum!</p>
+                <h3 className="text-xl font-semibold text-gray-800 mb-2">No discussions yet</h3>
+                <p className="text-gray-500 max-w-xs mx-auto mb-6">Be the first to start a discussion in our community forum!</p>
               </div>
             )}
           </div>

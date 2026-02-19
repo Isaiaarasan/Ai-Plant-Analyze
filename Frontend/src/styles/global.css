@@ -1,250 +1,112 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
-@import './variables.css';
+@import "tailwindcss";
 
-/* Reset */
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+@theme {
+  /* Colors */
+  --color-primary: #2ecc71;
+  --color-primary-dark: #27ae60;
+  --color-primary-light: #a9dfbf;
+  --color-secondary: #3498db;
+  --color-secondary-dark: #2980b9;
+  --color-accent: #e74c3c;
+  --color-text: #333333;
+  --color-text-light: #666666;
+  --color-background: #f9f9f9;
+  --color-white: #ffffff;
+  --color-gray-light: #f1f1f1;
+  --color-gray: #dddddd;
+  --color-gray-dark: #aaaaaa;
+  --color-success: #2ecc71;
+  --color-success-light: #d4f7e3;
+  --color-success-dark: #1e8449;
+  --color-warning: #f39c12;
+  --color-warning-light: #fdebd0;
+  --color-warning-dark: #b06f09;
+  --color-danger: #e74c3c;
+  --color-danger-light: #fadbd8;
+  --color-danger-dark: #a93226;
+  --color-info: #3498db;
+  --color-info-light: #d4e6f1;
+  --color-info-dark: #1f618d;
+
+  /* Font */
+  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+
+  /* Spacing - Mapping to Tailwind usually unnecessary as Tailwind has its own, but we can override if strict */
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-html {
-  font-size: 16px;
-  scroll-behavior: smooth;
+/* Global Reset & Base Styles */
+@layer base {
+  body {
+    @apply font-sans text-text bg-background antialiased leading-normal;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply break-words;
+  }
+
+  a {
+    @apply text-primary transition-colors duration-150;
+  }
+
+  a:hover {
+    @apply text-primary-dark;
+  }
+
+  /* Buttons Utility - keeping provided utility classes but using @apply */
+  .btn {
+    @apply inline-flex items-center justify-center px-6 py-3 rounded-md font-medium transition-all duration-300 text-center cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-dark;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-white hover:bg-secondary-dark;
+  }
+
+  .btn-outline {
+    @apply border border-primary text-primary bg-transparent hover:bg-primary hover:text-white;
+  }
+
+  /* Dark Mode Overrides */
+  .dark-mode body {
+    --color-background: #121212;
+    --color-white: #1e1e1e;
+    --color-text: #e0e0e0;
+    --color-text-light: #a0a0a0;
+    --color-gray-light: #2c2c2c;
+    --color-gray: #3a3a3a;
+    --color-gray-dark: #505050;
+    --color-primary-light: #5c6bc0;
+    --color-primary-dark: #283593;
+  }
 }
 
-body {
-  font-family: var(--font-family);
-  color: var(--color-text);
-  background-color: var(--color-background);
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-img, picture, video, canvas, svg {
-  display: block;
-  max-width: 100%;
-}
-
-input, button, textarea, select {
-  font: inherit;
-}
-
-p, h1, h2, h3, h4, h5, h6 {
-  overflow-wrap: break-word;
-}
-
-a {
-  text-decoration: none;
-  color: var(--color-primary);
-  transition: color var(--transition-fast);
-}
-
-a:hover {
-  color: var(--color-primary-dark);
-}
-
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-}
-
-ul, ol {
-  list-style: none;
-}
-
-/* Utility Classes */
-.container {
-  width: 100%;
+/* Utilities that were manually defined */
+@utility container {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 var(--spacing-md);
+  margin-inline: auto;
+  padding-inline: 1rem;
 }
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--border-radius-md);
-  font-weight: 500;
-  transition: all var(--transition-normal);
-  text-align: center;
-}
-
-.btn-primary {
-  background-color: var(--color-primary);
-  color: var(--color-white);
-}
-
-.btn-primary:hover {
-  background-color: var(--color-primary-dark);
-  color: var(--color-white);
-}
-
-.btn-secondary {
-  background-color: var(--color-secondary);
-  color: var(--color-white);
-}
-
-.btn-secondary:hover {
-  background-color: var(--color-secondary-dark);
-  color: var(--color-white);
-}
-
-.btn-outline {
-  border: 1px solid var(--color-primary);
-  color: var(--color-primary);
-  background-color: transparent;
-}
-
-.btn-outline:hover {
-  background-color: var(--color-primary);
-  color: var(--color-white);
-}
-
-.text-center {
-  text-align: center;
-}
-
-.mt-1 { margin-top: var(--spacing-xs); }
-.mt-2 { margin-top: var(--spacing-sm); }
-.mt-3 { margin-top: var(--spacing-md); }
-.mt-4 { margin-top: var(--spacing-lg); }
-.mt-5 { margin-top: var(--spacing-xl); }
-
-.mb-1 { margin-bottom: var(--spacing-xs); }
-.mb-2 { margin-bottom: var(--spacing-sm); }
-.mb-3 { margin-bottom: var(--spacing-md); }
-.mb-4 { margin-bottom: var(--spacing-lg); }
-.mb-5 { margin-bottom: var(--spacing-xl); }
-
-.ml-1 { margin-left: var(--spacing-xs); }
-.ml-2 { margin-left: var(--spacing-sm); }
-.ml-3 { margin-left: var(--spacing-md); }
-.ml-4 { margin-left: var(--spacing-lg); }
-.ml-5 { margin-left: var(--spacing-xl); }
-
-.mr-1 { margin-right: var(--spacing-xs); }
-.mr-2 { margin-right: var(--spacing-sm); }
-.mr-3 { margin-right: var(--spacing-md); }
-.mr-4 { margin-right: var(--spacing-lg); }
-.mr-5 { margin-right: var(--spacing-xl); }
-
-.p-1 { padding: var(--spacing-xs); }
-.p-2 { padding: var(--spacing-sm); }
-.p-3 { padding: var(--spacing-md); }
-.p-4 { padding: var(--spacing-lg); }
-.p-5 { padding: var(--spacing-xl); }
-
-.flex {
-  display: flex;
-}
-
-.flex-col {
-  flex-direction: column;
-}
-
-.items-center {
-  align-items: center;
-}
-
-.justify-center {
-  justify-content: center;
-}
-
-.justify-between {
-  justify-content: space-between;
-}
-
-.grid {
-  display: grid;
-}
-
-.hidden {
-  display: none;
-}
-
-/* Responsive utilities */
-@media (max-width: 768px) {
-  .hidden-mobile {
-    display: none;
-  }
-}
-
-@media (min-width: 769px) {
-  .hidden-desktop {
-    display: none;
-  }
-}
-
-/* Dark Mode */
-body.dark-mode {
-  --color-background: #121212;
-  --color-white: #1e1e1e;
-  --color-text: #e0e0e0;
-  --color-text-light: #a0a0a0;
-  --color-gray-light: #2c2c2c;
-  --color-gray: #3a3a3a;
-  --color-gray-dark: #505050;
-  --color-primary-light: #5c6bc0;
-  --color-primary-dark: #283593;
-}
-
-body.dark-mode .post-card,
-body.dark-mode .new-post-section,
-body.dark-mode .profile-card {
-  background-color: #1e1e1e;
-  border: 1px solid #2c2c2c;
-}
-
-body.dark-mode input,
-body.dark-mode textarea,
-body.dark-mode select {
-  background-color: #2c2c2c;
-  color: #e0e0e0;
-  border-color: #3a3a3a;
-}
-
-body.dark-mode input:focus,
-body.dark-mode textarea:focus,
-body.dark-mode select:focus {
-  border-color: var(--color-primary);
-}
-
-body.dark-mode .btn-outline {
-  border-color: var(--color-primary);
-}
-
-/* Update Message */
-.update-message {
-  background-color: var(--color-success-light);
-  color: var(--color-success-dark);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  margin-top: var(--spacing-sm);
-  text-align: center;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-.error-message {
-  background-color: var(--color-danger-light);
-  color: var(--color-danger-dark);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--border-radius-md);
-  margin-top: var(--spacing-sm);
-  text-align: center;
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-/* Animations */
+/* Animations included in global.css */
 @keyframes spin {
-  0% {
+  from {
     transform: rotate(0deg);
   }
-  100% {
+
+  to {
     transform: rotate(360deg);
   }
 }
@@ -253,6 +115,7 @@ body.dark-mode .btn-outline {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }

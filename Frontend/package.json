@@ -10,11 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.2.0",
     "axios": "^1.6.2",
     "plant-symptom-tracker": "file:",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0"
+    "react-router-dom": "^6.20.0",
+    "tailwindcss": "^4.2.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",
