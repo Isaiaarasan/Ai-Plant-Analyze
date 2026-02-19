@@ -98,8 +98,8 @@ function Chatbox() {
             <div
               key={index}
               className={`px-4 py-3 rounded-2xl max-w-[85%] break-words text-sm leading-relaxed shadow-sm ${message.role === 'User'
-                  ? 'bg-primary text-white self-end rounded-br-none'
-                  : 'bg-white text-gray-800 self-start rounded-bl-none border border-gray-200'
+                ? 'bg-primary text-white self-end rounded-br-none'
+                : 'bg-white text-gray-800 self-start rounded-bl-none border border-gray-200'
                 }`}
             >
               {message.responsed}
@@ -143,4 +143,4 @@ function Chatbox() {
   );
 }
 
-export default App;
+export default Chatbox;

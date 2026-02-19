@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, createBrowserRouter, 
 import { UNSAFE_DataRouterContext, UNSAFE_DataRouterStateContext } from 'react-router-dom';
 import Navbar from './components/Navbar';
 
-import './styles/global.css';
+
 
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
