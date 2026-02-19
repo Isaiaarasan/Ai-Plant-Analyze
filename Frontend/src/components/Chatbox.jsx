@@ -55,10 +55,27 @@ function Chatbox() {
 
     try {
       const response = await fetch('https://chatgpt-api7.p.rapidapi.com/ask', options);
-      const data = await response.json();
+
+      let botResponse = '';
+      const contentType = response.headers.get("content-type");
+
+      if (contentType && contentType.includes("application/json")) {
+        const data = await response.json();
+        // Check for common response structures
+        botResponse = data.response || (data.choices && data.choices[0]?.message?.content) || JSON.stringify(data);
+      } else {
+        // Handle plain text response (e.g. error messages or direct text)
+        botResponse = await response.text();
+      }
+
+      if (!response.ok) {
+        console.error(`API Error ${response.status}: ${botResponse}`);
+        // If it's a server error but we have a readable message, still display it
+        if (!botResponse) botResponse = `Error: ${response.status} ${response.statusText}`;
+      }
 
       setAns((prevAns) => [
-        { responsed: data.response, role: 'Assistant' },
+        { responsed: botResponse, role: 'Assistant' },
         ...prevAns,
       ]);
     } catch (err) {
