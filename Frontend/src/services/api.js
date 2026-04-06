@@ -1,25 +1,25 @@
-import axios from 'axios';
+import axios from "axios";
 
 // Create axios instance with base URL
-const API_URL = 'https://ai-plant-analyze.onrender.com/api';
+const API_URL = "http://localhost:3001/api";
 
 const api = axios.create({
   baseURL: API_URL,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    "Content-Type": "application/json",
+  },
 });
 
 // Add request interceptor to include auth token in requests
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // Auth services
@@ -27,66 +27,70 @@ export const authService = {
   // Register a new user
   signup: async (userData) => {
     try {
-      const response = await api.post('/auth/signup', userData);
+      const response = await api.post("/auth/signup", userData);
       if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data));
       }
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'An error occurred during signup' };
+      throw (
+        error.response?.data || { message: "An error occurred during signup" }
+      );
     }
   },
 
   // Login user
   login: async (credentials) => {
     try {
-      const response = await api.post('/auth/login', credentials);
+      const response = await api.post("/auth/login", credentials);
       if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data));
       }
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'An error occurred during login' };
+      throw (
+        error.response?.data || { message: "An error occurred during login" }
+      );
     }
   },
 
   // Logout user
   logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   },
 
   // Get current user
   getCurrentUser: () => {
-    const user = localStorage.getItem('user');
+    const user = localStorage.getItem("user");
     return user ? JSON.parse(user) : null;
   },
 
   // Get user profile
   getProfile: async () => {
     try {
-      const response = await api.get('/auth/profile');
+      const response = await api.get("/auth/profile");
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch profile' };
+      throw error.response?.data || { message: "Failed to fetch profile" };
     }
   },
 
   // Update user profile
   updateProfile: async (profileData) => {
     try {
-      const response = await api.put('/auth/profile', profileData);
+      const response = await api.put("/auth/profile", profileData);
       if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data));
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("user", JSON.stringify(response.data));
       }
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to update profile' };
+      throw error.response?.data || { message: "Failed to update profile" };
     }
-  }
+  },
 };
 
 // Plant detection services
@@ -95,26 +99,26 @@ export const plantService = {
   detectDisease: async (imageFile) => {
     try {
       const formData = new FormData();
-      formData.append('image', imageFile);
+      formData.append("image", imageFile);
 
-      const response = await api.post('/detect', formData, {
+      const response = await api.post("/detect", formData, {
         headers: {
-          'Content-Type': 'multipart/form-data'
-        }
+          "Content-Type": "multipart/form-data",
+        },
       });
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to detect disease' };
+      throw error.response?.data || { message: "Failed to detect disease" };
     }
   },
 
   // Get scan history
   getScanHistory: async () => {
     try {
-      const response = await api.get('/detect/history');
+      const response = await api.get("/detect/history");
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch scan history' };
+      throw error.response?.data || { message: "Failed to fetch scan history" };
     }
   },
 
@@ -124,7 +128,7 @@ export const plantService = {
       const response = await api.get(`/detect/${scanId}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch scan details' };
+      throw error.response?.data || { message: "Failed to fetch scan details" };
     }
   },
 
@@ -134,9 +138,9 @@ export const plantService = {
       const response = await api.delete(`/detect/${scanId}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to delete scan' };
+      throw error.response?.data || { message: "Failed to delete scan" };
     }
-  }
+  },
 };
 
 // Solutions services
@@ -147,19 +151,21 @@ export const solutionsService = {
       const response = await api.get(`/solutions/${diseaseName}`);
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch solutions' };
+      throw error.response?.data || { message: "Failed to fetch solutions" };
     }
   },
 
   // Get all diseases
   getAllDiseases: async () => {
     try {
-      const response = await api.get('/solutions');
+      const response = await api.get("/solutions");
       return response.data;
     } catch (error) {
-      throw error.response?.data || { message: 'Failed to fetch diseases list' };
+      throw (
+        error.response?.data || { message: "Failed to fetch diseases list" }
+      );
     }
-  }
+  },
 };
 
 // For direct API access if needed
