@@ -32,6 +32,9 @@ public class DetectController {
     private final ScanRepository scanRepository;
     private final AuthService authService;
 
+    @Value("${ml.service.url}")
+    private String mlServiceUrl;
+
     @Value("${openai.api.key}")
     private String openAiApiKey;
 
@@ -204,8 +207,19 @@ public class DetectController {
         Map<String, Object> localAnalysis = analyzeImagePixels(imagePath);
         System.out.println("Local pre-analysis results: " + localAnalysis);
 
-        // 2. Perform AI-based Deep Analysis (The "AI ML" layer)
-        // This combines local observations with the generative power of OpenAI
+        // 2. Try Python ML Service (Primary)
+        try {
+            System.out.println("Attempting Python ML analysis...");
+            Map<String, Object> mlResult = analyzeWithPythonML(imagePath);
+            if (mlResult != null && !mlResult.containsKey("error")) {
+                System.out.println("Python ML analysis successful: " + mlResult.get("disease"));
+                return mlResult;
+            }
+        } catch (Exception e) {
+            System.err.println("Python ML analysis failed or unavailable: " + e.getMessage());
+        }
+
+        // 3. Perform AI-based Deep Analysis (Fallback/Complementary)
         if (getOpenAiService() == null) {
             System.out.println("OpenAI not configured, proceeding with local analysis only.");
             return localAnalysis;
@@ -359,6 +373,34 @@ public class DetectController {
         }
 
         return result;
+    }
+
+    /**
+     * Calls the external Python ML service to analyze the plant image.
+     */
+    private Map<String, Object> analyzeWithPythonML(Path imagePath) {
+        try {
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            org.springframework.core.io.Resource imageResource = new org.springframework.core.io.FileSystemResource(imagePath.toFile());
+
+            org.springframework.util.MultiValueMap<String, Object> body = new org.springframework.util.LinkedMultiValueMap<>();
+            body.add("image", imageResource);
+
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.MULTIPART_FORM_DATA);
+
+            org.springframework.http.HttpEntity<org.springframework.util.MultiValueMap<String, Object>> requestEntity = 
+                    new org.springframework.http.HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.postForEntity(mlServiceUrl, requestEntity, Map.class);
+            
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return (Map<String, Object>) response.getBody();
+            }
+        } catch (Exception e) {
+            System.err.println("Error calling Python ML service: " + e.getMessage());
+        }
+        return null;
     }
 
     private String extractJsonValue(String json, String key, String defaultValue) {
