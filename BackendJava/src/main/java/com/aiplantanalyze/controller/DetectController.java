@@ -1,10 +1,8 @@
 package com.aiplantanalyze.controller;
 
-import com.aiplantanalyze.model.Disease;
 import com.aiplantanalyze.model.Scan;
 import com.aiplantanalyze.model.ScanResult;
 import com.aiplantanalyze.model.User;
-import com.aiplantanalyze.repository.DiseaseRepository;
 import com.aiplantanalyze.repository.ScanRepository;
 import com.aiplantanalyze.security.AuthService;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
@@ -31,7 +29,6 @@ import java.util.Base64;
 @RequestMapping("/api/detect")
 public class DetectController {
 
-    private final DiseaseRepository diseaseRepository;
     private final ScanRepository scanRepository;
     private final AuthService authService;
 
@@ -40,10 +37,8 @@ public class DetectController {
 
     private OpenAiService openAiService;
 
-    public DetectController(DiseaseRepository diseaseRepository,
-                            ScanRepository scanRepository,
+    public DetectController(ScanRepository scanRepository,
                             AuthService authService) {
-        this.diseaseRepository = diseaseRepository;
         this.scanRepository = scanRepository;
         this.authService = authService;
     }
@@ -51,16 +46,19 @@ public class DetectController {
     private OpenAiService getOpenAiService() {
         if (openAiService == null && openAiApiKey != null && !openAiApiKey.equals("your_openai_api_key_here")) {
             try {
+                System.out.println("Initializing OpenAI service with API key: " + openAiApiKey.substring(0, 10) + "...");
                 openAiService = new OpenAiService(openAiApiKey);
+                System.out.println("OpenAI service initialized successfully");
             } catch (Exception e) {
                 System.err.println("Failed to initialize OpenAI service: " + e.getMessage());
+                e.printStackTrace();
                 openAiService = null;
             }
         }
         return openAiService;
     }
 
-    @PostMapping("/")
+    @PostMapping
     public ResponseEntity<?> detectDisease(HttpServletRequest request,
                                            @RequestParam("image") MultipartFile file) {
         try {
@@ -200,62 +198,68 @@ public class DetectController {
     }
 
     private Map<String, Object> identifyDisease(Path imagePath) throws IOException {
+        System.out.println("Starting image analysis for file: " + imagePath.toString());
+
         // Check if OpenAI service is available
-        if (getOpenAiService() != null) {
-            try {
-                // Read image file and convert to base64
-                byte[] imageBytes = Files.readAllBytes(imagePath);
-                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-                String mimeType = Files.probeContentType(imagePath);
-                if (mimeType == null) {
-                    mimeType = "image/jpeg"; // default
-                }
+        if (getOpenAiService() == null) {
+            throw new RuntimeException("OpenAI service is not available. Please check your API key configuration.");
+        }
 
-                // Create the prompt for plant disease analysis
-                String prompt = "Analyze this plant image and identify any diseases, pests, or health issues. " +
-                        "Provide a detailed analysis including:\n" +
-                        "1. Disease/Pest name (if any)\n" +
-                        "2. Confidence level (0-100%)\n" +
-                        "3. Severity level (low/medium/high)\n" +
-                        "4. Health score (0-100, where 100 is perfectly healthy)\n" +
-                        "5. Treatment recommendations\n" +
-                        "6. Prevention measures\n" +
-                        "If the plant appears healthy, indicate that clearly.\n" +
-                        "Format your response as JSON with keys: disease, confidence, severity, healthScore, treatment, prevention";
-
-                // Create chat messages for vision API
-                List<ChatMessage> messages = new ArrayList<>();
-                messages.add(new ChatMessage(ChatMessageRole.USER.value(),
-                        prompt + "\n\n![plant image](data:" + mimeType + ";base64," + base64Image + ")"));
-
-                // Create chat completion request
-                ChatCompletionRequest request = ChatCompletionRequest.builder()
-                        .model("gpt-4-vision-preview")
-                        .messages(messages)
-                        .maxTokens(1000)
-                        .temperature(0.1)
-                        .build();
-
-                // Get response from OpenAI
-                var response = getOpenAiService().createChatCompletion(request);
-                String content = response.getChoices().get(0).getMessage().getContent();
-
-                // Parse the JSON response
-                // For simplicity, we'll extract information from the text response
-                // In a production app, you'd want more robust JSON parsing
-
-                Map<String, Object> result = parseAnalysisResponse(content);
-
-                return result;
-
-            } catch (Exception e) {
-                System.err.println("OpenAI analysis failed, falling back to database analysis: " + e.getMessage());
-                // Fallback to database-based analysis if OpenAI fails
-                return fallbackAnalysis();
+        try {
+            System.out.println("Reading image file...");
+            // Read image file and convert to base64
+            byte[] imageBytes = Files.readAllBytes(imagePath);
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            String mimeType = Files.probeContentType(imagePath);
+            if (mimeType == null) {
+                mimeType = "image/jpeg"; // default
             }
-        } else {
-            // OpenAI not available, use fallback analysis
-            return fallbackAnalysis();
+
+            System.out.println("Image converted to base64, size: " + base64Image.length() + " characters, MIME type: " + mimeType);
+
+            // Create the prompt for plant disease analysis
+            String prompt = "Analyze this plant image and identify any diseases, pests, or health issues. " +
+                    "Provide a detailed analysis including:\n" +
+                    "1. Disease/Pest name (if any)\n" +
+                    "2. Confidence level (0-100%)\n" +
+                    "3. Severity level (low/medium/high)\n" +
+                    "4. Health score (0-100, where 100 is perfectly healthy)\n" +
+                    "5. Treatment recommendations\n" +
+                    "6. Prevention measures\n" +
+                    "If the plant appears healthy, indicate that clearly.\n" +
+                    "Format your response as JSON with keys: disease, confidence, severity, healthScore, treatment, prevention";
+
+            System.out.println("Creating OpenAI chat request...");
+            // Create chat messages for vision API
+            List<ChatMessage> messages = new ArrayList<>();
+            messages.add(new ChatMessage(ChatMessageRole.USER.value(),
+                    prompt + "\n\n![plant image](data:" + mimeType + ";base64," + base64Image + ")"));
+
+            // Create chat completion request
+            ChatCompletionRequest request = ChatCompletionRequest.builder()
+                    .model("gpt-4o")
+                    .messages(messages)
+                    .maxTokens(1000)
+                    .temperature(0.1)
+                    .build();
+
+            System.out.println("Sending request to OpenAI...");
+            // Get response from OpenAI
+            var response = getOpenAiService().createChatCompletion(request);
+            String content = response.getChoices().get(0).getMessage().getContent();
+
+            System.out.println("Received response from OpenAI: " + content.substring(0, Math.min(200, content.length())) + "...");
+
+            // Parse the JSON response
+            Map<String, Object> result = parseAnalysisResponse(content);
+
+            System.out.println("Analysis completed successfully");
+            return result;
+
+        } catch (Exception e) {
+            System.err.println("Failed to analyze image with OpenAI: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to analyze image with OpenAI: " + e.getMessage(), e);
         }
     }
 
@@ -291,7 +295,7 @@ public class DetectController {
                 result.put("prevention", prevention);
             }
         } catch (Exception e) {
-            return fallbackAnalysis();
+            throw new RuntimeException("Failed to parse OpenAI response: " + e.getMessage(), e);
         }
 
         return result;
@@ -355,98 +359,5 @@ public class DetectController {
         } catch (Exception e) {
             return 80;
         }
-    }
-
-    private Map<String, Object> fallbackAnalysis() {
-        List<Disease> diseases = diseaseRepository.findAll();
-        if (diseases.isEmpty()) {
-            seedDiseases();
-            Map<String, Object> fallback = new HashMap<>();
-            fallback.put("disease", "Analysis Unavailable");
-            fallback.put("confidence", 50);
-            fallback.put("severity", "unknown");
-            fallback.put("healthScore", 50);
-            fallback.put("treatment", "Unable to analyze image. Please try again or consult a plant specialist.");
-            fallback.put("prevention", "Ensure good image quality for better analysis.");
-            return fallback;
-        }
-
-        Disease detectedDisease = diseases.get(new Random().nextInt(diseases.size()));
-        int confidence = new Random().nextInt(30) + 70;
-        int healthScore;
-        switch (detectedDisease.getSeverity()) {
-            case "high" -> healthScore = new Random().nextInt(20) + 50;
-            case "medium" -> healthScore = new Random().nextInt(20) + 70;
-            default -> healthScore = new Random().nextInt(10) + 90;
-        }
-
-        Map<String, Object> response = new HashMap<>();
-        response.put("disease", detectedDisease.getName());
-        response.put("confidence", confidence);
-        response.put("severity", detectedDisease.getSeverity());
-        response.put("healthScore", healthScore);
-        response.put("treatment", detectedDisease.getTreatment());
-        response.put("prevention", detectedDisease.getPrevention());
-        return response;
-    }
-
-    private void seedDiseases() {
-        List<Disease> diseases = List.of(
-                new Disease("Powdery Mildew",
-                        "A fungal disease that affects a wide range of plants, characterized by white powdery spots on leaves and stems.",
-                        List.of("White powdery spots on leaves", "Yellowing leaves", "Distorted growth", "Premature leaf drop"),
-                        "Caused by various species of fungi in the Erysiphales order, thriving in humid conditions with poor air circulation.",
-                        "Apply neem oil or a sulfur-based fungicide. Improve air circulation around plants.",
-                        "Space plants properly. Avoid overhead watering. Remove infected leaves.",
-                        List.of("Roses", "Cucumbers", "Squash", "Pumpkins", "Melons", "Grapes"),
-                        "medium",
-                        "https://example.com/powdery-mildew.jpg"),
-                new Disease("Leaf Spot",
-                        "A common plant disease characterized by brown or black spots on leaves, caused by various fungi and bacteria.",
-                        List.of("Brown or black spots on leaves", "Yellowing around spots", "Spots may have a yellow halo", "Leaf drop"),
-                        "Caused by various fungi and bacteria, often spread by water splash and favored by wet conditions.",
-                        "Apply copper-based fungicide. Remove and destroy infected leaves.",
-                        "Rotate crops. Avoid overhead watering. Keep garden clean of debris.",
-                        List.of("Tomatoes", "Peppers", "Strawberries", "Roses", "Maple trees"),
-                        "medium",
-                        "https://example.com/leaf-spot.jpg"),
-                new Disease("Rust",
-                        "A fungal disease that produces rusty-colored spots on leaves and stems, weakening the plant.",
-                        List.of("Orange or rusty-colored pustules on leaves", "Yellow spots on upper leaf surface", "Distorted growth", "Premature leaf drop"),
-                        "Caused by various rust fungi, often spread by wind and favored by humid conditions.",
-                        "Apply sulfur dust or spray. Remove heavily infected plants.",
-                        "Increase spacing between plants. Avoid wetting leaves when watering.",
-                        List.of("Beans", "Roses", "Snapdragons", "Hollyhocks", "Daylilies"),
-                        "medium",
-                        "https://example.com/rust.jpg"),
-                new Disease("Blight",
-                        "A serious plant disease that causes rapid browning and death of plant tissues, often affecting entire plants.",
-                        List.of("Brown spots that spread rapidly", "Wilting", "Blackened stems", "Plant collapse"),
-                        "Caused by various fungi and bacteria, often thriving in warm, wet conditions.",
-                        "Apply copper-based fungicide. Remove infected parts.",
-                        "Rotate crops. Avoid overhead watering. Use disease-resistant varieties.",
-                        List.of("Tomatoes", "Potatoes", "Peppers", "Eggplants"),
-                        "high",
-                        "https://example.com/blight.jpg"),
-                new Disease("Aphid Infestation",
-                        "Small sap-sucking insects that cluster on new growth and the undersides of leaves, causing distortion and weakening.",
-                        List.of("Clusters of small insects on stems and leaves", "Curled or distorted leaves", "Sticky honeydew on leaves", "Sooty mold growth"),
-                        "Aphids reproduce rapidly in warm weather and are attracted to plants with soft new growth.",
-                        "Spray with insecticidal soap or neem oil. Introduce beneficial insects like ladybugs.",
-                        "Monitor plants regularly. Avoid excessive nitrogen fertilizer. Encourage beneficial insects.",
-                        List.of("Roses", "Vegetables", "Fruit trees", "Ornamentals"),
-                        "medium",
-                        "https://example.com/aphids.jpg"),
-                new Disease("Healthy Plant",
-                        "No disease detected. The plant appears to be healthy.",
-                        List.of("Vibrant color", "Normal growth pattern", "No visible spots or discoloration", "Healthy leaf structure"),
-                        "Proper care including adequate water, light, and nutrients.",
-                        "Continue regular plant care practices.",
-                        "Maintain regular watering, appropriate light conditions, and periodic fertilization.",
-                        List.of("All plants"),
-                        "low",
-                        "https://example.com/healthy-plant.jpg")
-        );
-        diseaseRepository.saveAll(diseases);
     }
 }

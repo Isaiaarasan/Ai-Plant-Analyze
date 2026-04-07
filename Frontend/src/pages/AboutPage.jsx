@@ -81,15 +81,14 @@ const AboutPage = () => {
 
         <section className="mb-20">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Our Team</h2>
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Developer</h2>
             <p className="text-gray-600">The minds behind PlantAI</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {[
-              { initial: 'DS', name: 'Dharshan S M', role: 'Full Stack Developer' },
-              { initial: 'EP', name: 'Elavarasan P', role: 'UX Designer' },
-              { initial: 'JV', name: 'JeganVijay', role: 'Full Stack Developer' },
-              { initial: 'JS', name: 'JayaSurya', role: 'Full Stack Developer' }
+              
+              { initial: 'EP', name: 'Elavarasan P', role: 'Full Stack Developer' },
+             
             ].map((member, i) => (
               <div key={i} className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-xl transition-all text-center group border border-gray-100 hover:-translate-y-2 duration-300">
                 <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-primary to-green-600 rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-lg transform group-hover:scale-110 transition-transform">
@@ -103,7 +102,7 @@ const AboutPage = () => {
           </div>
         </section>
 
-        <section className="mb-12">
+        {/* <section className="mb-12">
           <div className="text-center mb-12">
             <h2 className="text-2xl font-bold text-gray-800 mb-8 opacity-70">Trusted Partners</h2>
             <div className="flex flex-wrap justify-center gap-8 md:gap-16 grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
@@ -112,7 +111,7 @@ const AboutPage = () => {
               ))}
             </div>
           </div>
-        </section>
+        </section> */}
 
         <section className="bg-gradient-to-r from-green-600 to-primary rounded-3xl p-12 text-center text-white relative overflow-hidden shadow-2xl">
           <div className="relative z-10">
