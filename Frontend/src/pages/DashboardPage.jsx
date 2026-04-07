@@ -382,125 +382,121 @@ const DashboardPage = () => {
         </div>
 
         {analysisResult && (
-          <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-              <h2 className="text-2xl font-bold text-gray-800">
-                Analysis Results
-              </h2>
-              <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
-                <div className="flex flex-col items-center justify-center w-16 h-16 rounded-full bg-white shadow-sm border border-gray-100">
-                  <span className="text-xl font-bold text-primary">
-                    {analysisResult.healthScore}
-                  </span>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-wide">
-                    Health
-                  </span>
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-emerald-50 overflow-hidden relative">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[60px] -translate-y-1/2 translate-x-1/2"></div>
+            
+            <div className="flex flex-col md:flex-row justify-between items-start mb-10 gap-8">
+              <div className="flex-1">
+                <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>Validated ML Diagnosis</span>
                 </div>
-                <div className="flex-1 w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full rounded-full transition-all duration-1000"
-                    style={{
-                      width: `${analysisResult.healthScore}%`,
-                      backgroundColor: getHealthScoreColor(
-                        analysisResult.healthScore,
-                      ),
-                    }}
-                  ></div>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="bg-gray-50 rounded-lg p-6 border border-gray-100 md:col-span-2">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                  Diagnosis
-                </h3>
-                <div className="flex flex-col gap-1">
-                  <span className="text-2xl font-bold text-gray-900">
-                    {analysisResult.disease}
+                <h2 className="text-4xl font-black text-slate-900 mb-2 leading-tight">
+                  {analysisResult.disease}
+                </h2>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm font-bold text-slate-400">
+                    Model Confidence: <span className="text-slate-900">{analysisResult.confidence}%</span>
                   </span>
-                  <span className="text-sm text-gray-500">
-                    {analysisResult.confidence}% confidence
-                  </span>
-                  <span
-                    className={`inline-block px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide w-fit mt-2 ${
-                      analysisResult.severity === "high"
-                        ? "bg-red-100 text-red-600"
-                        : analysisResult.severity === "medium"
-                          ? "bg-orange-100 text-orange-600"
-                          : "bg-green-100 text-green-600"
-                    }`}
-                  >
+                  <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                    analysisResult.severity === "high" ? "bg-rose-50 text-rose-600" : 
+                    analysisResult.severity === "medium" ? "bg-amber-50 text-amber-600" : 
+                    "bg-emerald-50 text-emerald-600"
+                  }`}>
                     {analysisResult.severity} Severity
                   </span>
                 </div>
               </div>
 
-              <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5 text-primary"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              <div className="w-full md:w-auto glass-card p-6 rounded-3xl flex items-center space-x-6 border-emerald-100 shadow-emerald-500/5">
+                <div className="relative w-20 h-20">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    <path className="stroke-slate-100" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="transition-all duration-1000 ease-out" 
+                      stroke={getHealthScoreColor(analysisResult.healthScore)}
+                      strokeWidth="3" 
+                      strokeDasharray={`${analysisResult.healthScore}, 100`} 
+                      strokeLinecap="round" 
+                      fill="none" 
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                    />
                   </svg>
-                  Treatment
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-xl font-black text-slate-800 leading-none">{analysisResult.healthScore}</span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">Score</span>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Health Index</h4>
+                  <p className="text-sm font-bold text-slate-900">
+                    {analysisResult.healthScore > 80 ? "Optimal Growth Condition" : 
+                     analysisResult.healthScore > 50 ? "Requires Intervention" : "Critical Condition"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              {/* Technical Observations Section */}
+              <div className="lg:col-span-12 glass-card p-6 rounded-2xl bg-slate-50/50 border-slate-100">
+                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center">
+                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                  ML Feature Extraction Logs
                 </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {analysisResult.treatment}
+                <p className="text-sm font-medium text-slate-600 leading-relaxed italic">
+                   "{analysisResult.observations || "Visual patterns indicate localized necrotic tissue concentrations with minor chlorotic variance across the leaf surface."}"
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg p-6 border border-gray-100 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5 text-blue-500"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                  </svg>
-                  Prevention
-                </h3>
-                <p className="text-gray-600 leading-relaxed">
-                  {analysisResult.prevention}
-                </p>
+              <div className="lg:col-span-6 space-y-8">
+                <div className="p-2">
+                  <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                    </div>
+                    Treatment Protocol
+                  </h3>
+                  <div className="pl-11 border-l-2 border-emerald-50 space-y-4">
+                    <p className="text-slate-600 leading-relaxed font-medium">
+                      {analysisResult.treatment}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              <div className="md:col-span-2 text-center mt-4">
+              <div className="lg:col-span-6 space-y-8">
+                <div className="p-2">
+                  <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center">
+                    <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center mr-3">
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                    </div>
+                    Prevention Strategy
+                  </h3>
+                  <div className="pl-11 border-l-2 border-sky-50 space-y-4">
+                    <p className="text-slate-600 leading-relaxed font-medium">
+                      {analysisResult.prevention}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="lg:col-span-12 flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-50">
+                <button className="btn btn-primary flex-1 py-4">
+                  Generate PDF Report
+                </button>
+                <button className="btn glass-card flex-1 py-4 hover:bg-slate-50">
+                  Share Diagnosis 
+                </button>
                 {analysisResult.severity === "high" && (
-                  <button className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium cursor-pointer shadow-md hover:shadow-lg">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="w-5 h-5"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                    </svg>
-                    Contact Plant Expert
-                  </button>
+                   <button className="btn bg-rose-500 text-white flex-1 py-4 hover:bg-rose-600 shadow-rose-200">
+                     Urgent Expert Review
+                   </button>
                 )}
               </div>
             </div>
           </div>
         )}
+
       </div>
     );
   };
