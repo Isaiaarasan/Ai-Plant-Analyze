@@ -1,130 +1,130 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
-  /* Colors */
-  --color-primary: #2ecc71;
-  --color-primary-dark: #27ae60;
-  --color-primary-light: #a9dfbf;
-  --color-secondary: #3498db;
-  --color-secondary-dark: #2980b9;
-  --color-accent: #e74c3c;
-  --color-text: #333333;
-  --color-text-light: #666666;
-  --color-background: #f9f9f9;
+  /* Colors - Sophisticated Palette */
+  --color-primary: #10b981;
+  --color-primary-dark: #059669;
+  --color-primary-light: #6ee7b7;
+  --color-secondary: #0ea5e9;
+  --color-secondary-dark: #0284c7;
+  --color-accent: #f43f5e;
+  --color-text: #0f172a;
+  --color-text-light: #64748b;
+  --color-background: #f8fafc;
   --color-white: #ffffff;
-  --color-gray-light: #f1f1f1;
-  --color-gray: #dddddd;
-  --color-gray-dark: #aaaaaa;
-  --color-success: #2ecc71;
-  --color-success-light: #d4f7e3;
-  --color-success-dark: #1e8449;
-  --color-warning: #f39c12;
-  --color-warning-light: #fdebd0;
-  --color-warning-dark: #b06f09;
-  --color-danger: #e74c3c;
-  --color-danger-light: #fadbd8;
-  --color-danger-dark: #a93226;
-  --color-info: #3498db;
-  --color-info-light: #d4e6f1;
-  --color-info-dark: #1f618d;
+  --color-gray-light: #f1f5f9;
+  --color-gray: #e2e8f0;
+  --color-gray-dark: #cbd5e1;
+  --color-success: #10b981;
+  --color-success-light: #d1fae5;
+  --color-success-dark: #064e3b;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fef3c7;
+  --color-warning-dark: #78350f;
+  --color-danger: #ef4444;
+  --color-danger-light: #fee2e2;
+  --color-danger-dark: #7f1d1d;
+  --color-info: #3b82f6;
+  --color-info-light: #dbeafe;
+  --color-info-dark: #1e3a8a;
 
   /* Font */
-  --font-sans: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 
-  /* Spacing - Mapping to Tailwind usually unnecessary as Tailwind has its own, but we can override if strict */
-
-  /* Shadows */
+  /* Shadows - Premium Elevation */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 }
 
 /* Global Reset & Base Styles */
 @layer base {
   body {
-    @apply font-sans text-text bg-background antialiased leading-normal;
+    @apply font-sans text-text bg-background antialiased leading-relaxed;
+    background-image: 
+      radial-gradient(at 0% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%), 
+      radial-gradient(at 50% 0%, hsla(202, 80%, 91%, 1) 0, transparent 50%),
+      radial-gradient(at 100% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%);
+    background-attachment: fixed;
   }
 
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6 {
-    @apply break-words;
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight text-slate-900;
   }
 
   a {
-    @apply text-primary transition-colors duration-150;
+    @apply transition-all duration-300;
   }
 
-  a:hover {
-    @apply text-primary-dark;
-  }
-
-  /* Buttons Utility - keeping provided utility classes but using @apply */
   .btn {
-    @apply inline-flex items-center justify-center px-6 py-3 rounded-md font-medium transition-all duration-300 text-center cursor-pointer;
+    @apply inline-flex items-center justify-center px-8 py-3.5 rounded-2xl font-semibold transition-all duration-300 text-center cursor-pointer active:scale-95;
   }
 
   .btn-primary {
-    @apply bg-primary text-white hover:bg-primary-dark;
+    @apply bg-primary text-white shadow-lg shadow-emerald-500/20 hover:bg-primary-dark hover:shadow-emerald-500/40 hover:-translate-y-0.5;
   }
 
-  .btn-secondary {
-    @apply bg-secondary text-white hover:bg-secondary-dark;
+  .btn-white {
+    @apply bg-white text-primary shadow-lg hover:bg-gray-50 hover:shadow-xl hover:-translate-y-0.5;
   }
 
-  .btn-outline {
-    @apply border border-primary text-primary bg-transparent hover:bg-primary hover:text-white;
+  .glass-card {
+    @apply bg-white/70 backdrop-blur-xl border border-white/40 shadow-xl;
   }
 
-  /* Dark Mode Overrides */
-  .dark-mode body {
-    --color-background: #121212;
-    --color-white: #1e1e1e;
-    --color-text: #e0e0e0;
-    --color-text-light: #a0a0a0;
-    --color-gray-light: #2c2c2c;
-    --color-gray: #3a3a3a;
-    --color-gray-dark: #505050;
-    --color-primary-light: #5c6bc0;
-    --color-primary-dark: #283593;
+  .glass-card-dark {
+    @apply bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl;
   }
 }
 
-/* Utilities that were manually defined */
+/* Utilities */
 @utility container {
-  max-width: 1200px;
+  max-width: 1280px;
   margin-inline: auto;
-  padding-inline: 1rem;
+  padding-inline: 1.5rem;
 }
 
-/* Animations included in global.css */
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+/* Custom Animations */
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.spinner {
-  animation: spin 1s linear infinite;
+.animate-float {
+  animation: float 6s ease-in-out infinite;
 }
 
-.fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+.animate-slide-up {
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Fancy Gradients */
+.text-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-sky-600 font-extrabold;
+}
+
+.bg-mesh {
+  background-color: #f8fafc;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%), 
+    radial-gradient(at 50% 0%, hsla(202, 80%, 91%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%);
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
