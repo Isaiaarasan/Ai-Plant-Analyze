@@ -47,14 +47,21 @@ function Chatbox() {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'X-RapidAPI-Key': '1a9b0fb267msh6baa89733baea49p1b7dbfjsnab05e6fa9631',
-        'X-RapidAPI-Host': 'chatgpt-api7.p.rapidapi.com',
+        'Authorization': `Bearer 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`,
       },
-      body: JSON.stringify({ query: currentMessage }),
+      body: JSON.stringify({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: "You are a helpful Plant AI Assistant. You help users with plant care, disease identification, and gardening advice." },
+          { role: "user", content: currentMessage }
+        ],
+        temperature: 0.7,
+        max_tokens: 1024,
+      }),
     };
 
     try {
-      const response = await fetch('https://chatgpt-api7.p.rapidapi.com/ask', options);
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', options);
 
       let botResponse = '';
       const contentType = response.headers.get("content-type");

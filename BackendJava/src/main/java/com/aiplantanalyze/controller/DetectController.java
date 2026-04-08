@@ -5,11 +5,6 @@ import com.aiplantanalyze.model.ScanResult;
 import com.aiplantanalyze.model.User;
 import com.aiplantanalyze.repository.ScanRepository;
 import com.aiplantanalyze.security.AuthService;
-import com.theokanning.openai.completion.chat.ChatCompletionRequest;
-import com.theokanning.openai.completion.chat.ChatMessage;
-import com.theokanning.openai.completion.chat.ChatMessageRole;
-import com.theokanning.openai.image.ImageResult;
-import com.theokanning.openai.service.OpenAiService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,10 +30,14 @@ public class DetectController {
     @Value("${ml.service.url}")
     private String mlServiceUrl;
 
-    @Value("${openai.api.key}")
-    private String openAiApiKey;
+    @Value("${groq.api.key}")
+    private String groqApiKey;
 
-    private OpenAiService openAiService;
+    @Value("${groq.api.url}")
+    private String groqApiUrl;
+
+    @Value("${groq.model}")
+    private String groqModel;
 
     public DetectController(ScanRepository scanRepository,
                             AuthService authService) {
@@ -46,19 +45,78 @@ public class DetectController {
         this.authService = authService;
     }
 
-    private OpenAiService getOpenAiService() {
-        if (openAiService == null && openAiApiKey != null && !openAiApiKey.equals("your_openai_api_key_here")) {
-            try {
-                System.out.println("Initializing OpenAI service with API key: " + openAiApiKey.substring(0, 10) + "...");
-                openAiService = new OpenAiService(openAiApiKey);
-                System.out.println("OpenAI service initialized successfully");
-            } catch (Exception e) {
-                System.err.println("Failed to initialize OpenAI service: " + e.getMessage());
-                e.printStackTrace();
-                openAiService = null;
+    // Groq AI Analysis using RestTemplate for custom endpoint compatibility
+    private Map<String, Object> analyzeWithGroqAI(Path imagePath, Map<String, Object> localAnalysis) {
+        try {
+            System.out.println("Initializing Groq AI analysis for plant disease...");
+            byte[] imageBytes = Files.readAllBytes(imagePath);
+            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
+            String mimeType = Files.probeContentType(imagePath);
+            if (mimeType == null) mimeType = "image/jpeg";
+
+            // Prepare the prompt
+            String promptText = "Act as an Expert Plant Pathologist. Analyze this plant image. " +
+                    "Local pixel analysis suggests: " + localAnalysis.get("observations") + "\n" +
+                    "Provide a scientific diagnosis with high accuracy including:\n" +
+                    "1. Specific Disease/Pest name\n" +
+                    "2. Confidence level (0-100%)\n" +
+                    "3. Severity (low/medium/high)\n" +
+                    "4. Health score (0-100)\n" +
+                    "5. Organic and chemical treatment recommendations\n" +
+                    "6. Long-term prevention strategy\n" +
+                    "Format your response as a valid JSON with keys: disease, confidence, severity, healthScore, treatment, prevention";
+
+            // Build request for Groq (OpenAI-compatible vision format)
+            org.springframework.web.client.RestTemplate restTemplate = new org.springframework.web.client.RestTemplate();
+            
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", groqModel);
+            
+            List<Map<String, Object>> messages = new ArrayList<>();
+            Map<String, Object> userMessage = new HashMap<>();
+            userMessage.put("role", "user");
+            
+            List<Map<String, Object>> contents = new ArrayList<>();
+            contents.add(Map.of("type", "text", "text", promptText));
+            contents.add(Map.of("type", "image_url", "image_url", Map.of("url", "data:" + mimeType + ";base64," + base64Image)));
+            
+            userMessage.put("content", contents);
+            messages.add(userMessage);
+            requestBody.put("messages", messages);
+            requestBody.put("temperature", 0.2);
+            requestBody.put("max_tokens", 800);
+
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            headers.setContentType(org.springframework.http.MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + groqApiKey);
+
+            org.springframework.http.HttpEntity<Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(requestBody, headers);
+            
+            System.out.println("Sending request to Groq API at: " + groqApiUrl);
+            ResponseEntity<Map> response = restTemplate.postForEntity(groqApiUrl + "/chat/completions", entity, Map.class);
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                List<Map<String, Object>> choices = (List<Map<String, Object>>) response.getBody().get("choices");
+                if (choices != null && !choices.isEmpty()) {
+                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+                    String content = (String) message.get("content");
+                    
+                    // Extract JSON if AI wraps it in markdown blocks
+                    if (content.contains("```json")) {
+                        content = content.substring(content.indexOf("```json") + 7, content.lastIndexOf("```")).trim();
+                    } else if (content.contains("```")) {
+                        content = content.substring(content.indexOf("```") + 3, content.lastIndexOf("```")).trim();
+                    }
+                    
+                    System.out.println("Groq AI analysis successful");
+                    return parseAnalysisResponse(content);
+                }
             }
+        } catch (Exception e) {
+            System.err.println("Groq AI Analysis failed: " + e.getMessage());
+            e.printStackTrace();
         }
-        return openAiService;
+        return localAnalysis;
     }
 
     @PostMapping
@@ -219,59 +277,13 @@ public class DetectController {
             System.err.println("Python ML analysis failed or unavailable: " + e.getMessage());
         }
 
-        // 3. Perform AI-based Deep Analysis (Fallback/Complementary)
-        if (getOpenAiService() == null) {
-            System.out.println("OpenAI not configured, proceeding with local analysis only.");
+        // 3. Perform Groq AI-based Deep Analysis (Fallback/Complementary)
+        if (groqApiKey == null || groqApiKey.isEmpty()) {
+            System.out.println("Groq API key not configured, proceeding with local analysis only.");
             return localAnalysis;
         }
 
-        try {
-            System.out.println("Reading image for AI analysis...");
-            byte[] imageBytes = Files.readAllBytes(imagePath);
-            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-            String mimeType = Files.probeContentType(imagePath);
-            if (mimeType == null) mimeType = "image/jpeg";
-
-            // Prepare a specialized medical-botany prompt
-            String prompt = "Act as an Expert Plant Pathologist. Analyze this plant image. " +
-                    "Local pixel analysis suggests: " + localAnalysis.get("observations") + "\n" +
-                    "Provide a scientific diagnosis with high accuracy including:\n" +
-                    "1. Specific Disease/Pest name\n" +
-                    "2. Confidence level (0-100%)\n" +
-                    "3. Severity (low/medium/high)\n" +
-                    "4. Health score (0-100)\n" +
-                    "5. Organic and chemical treatment recommendations\n" +
-                    "6. Long-term prevention strategy\n" +
-                    "Format your response as a valid JSON with keys: disease, confidence, severity, healthScore, treatment, prevention";
-
-            List<ChatMessage> messages = new ArrayList<>();
-            messages.add(new ChatMessage(ChatMessageRole.USER.value(),
-                    prompt + "\n\n![analyzed plant](data:" + mimeType + ";base64," + base64Image + ")"));
-
-            ChatCompletionRequest request = ChatCompletionRequest.builder()
-                    .model("gpt-4o")
-                    .messages(messages)
-                    .maxTokens(800)
-                    .temperature(0.2) // More deterministic for medical/scientific results
-                    .build();
-
-            var response = getOpenAiService().createChatCompletion(request);
-            String content = response.getChoices().get(0).getMessage().getContent();
-            
-            // Extract JSON if AI wraps it in markdown blocks
-            if (content.contains("```json")) {
-                content = content.substring(content.indexOf("```json") + 7, content.lastIndexOf("```")).trim();
-            } else if (content.contains("```")) {
-                content = content.substring(content.indexOf("```") + 3, content.lastIndexOf("```")).trim();
-            }
-
-            return parseAnalysisResponse(content);
-
-        } catch (Exception e) {
-            System.err.println("AI Analysis failed: " + e.getMessage());
-            // Safe fallback to local analysis if AI fails
-            return localAnalysis;
-        }
+        return analyzeWithGroqAI(imagePath, localAnalysis);
     }
 
     /**
