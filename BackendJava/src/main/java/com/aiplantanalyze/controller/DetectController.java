@@ -19,6 +19,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.Base64;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 
 @RestController
 @RequestMapping("/api/detect")
@@ -93,23 +95,33 @@ public class DetectController {
             org.springframework.http.HttpEntity<Map<String, Object>> entity = new org.springframework.http.HttpEntity<>(requestBody, headers);
             
             System.out.println("Sending request to Groq API at: " + groqApiUrl);
-            ResponseEntity<Map> response = restTemplate.postForEntity(groqApiUrl + "/chat/completions", entity, Map.class);
+            org.springframework.http.ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    groqApiUrl + "/chat/completions",
+                    HttpMethod.POST,
+                    entity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                List<Map<String, Object>> choices = (List<Map<String, Object>>) response.getBody().get("choices");
-                if (choices != null && !choices.isEmpty()) {
-                    Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                    String content = (String) message.get("content");
-                    
-                    // Extract JSON if AI wraps it in markdown blocks
-                    if (content.contains("```json")) {
-                        content = content.substring(content.indexOf("```json") + 7, content.lastIndexOf("```")).trim();
-                    } else if (content.contains("```")) {
-                        content = content.substring(content.indexOf("```") + 3, content.lastIndexOf("```")).trim();
+                Object choicesObject = response.getBody().get("choices");
+                if (choicesObject instanceof List<?>) {
+                    List<?> choices = (List<?>) choicesObject;
+                    if (!choices.isEmpty() && choices.get(0) instanceof Map<?, ?>) {
+                        Object messageObject = ((Map<?, ?>) choices.get(0)).get("message");
+                        if (messageObject instanceof Map<?, ?>) {
+                            Object contentObject = ((Map<?, ?>) messageObject).get("content");
+                            if (contentObject instanceof String) {
+                                String content = (String) contentObject;
+                                if (content.contains("```json")) {
+                                    content = content.substring(content.indexOf("```json") + 7, content.lastIndexOf("```")).trim();
+                                } else if (content.contains("```")) {
+                                    content = content.substring(content.indexOf("```") + 3, content.lastIndexOf("```")).trim();
+                                }
+                                System.out.println("Groq AI analysis successful");
+                                return parseAnalysisResponse(content);
+                            }
+                        }
                     }
-                    
-                    System.out.println("Groq AI analysis successful");
-                    return parseAnalysisResponse(content);
                 }
             }
         } catch (Exception e) {
@@ -329,6 +341,7 @@ public class DetectController {
             double greenRatio = (double) greenPixels / (totalPixels / 25.0);
             double brownRatio = (double) brownPixels / (totalPixels / 25.0);
             double yellowRatio = (double) yellowPixels / (totalPixels / 25.0);
+            double darkRatio = (double) darkPixels / (totalPixels / 25.0);
             
             int healthScore = (int) (greenRatio * 100);
             healthScore = Math.min(100, Math.max(10, healthScore)); // normalize
@@ -341,6 +354,10 @@ public class DetectController {
                 disease = "Late Blight / Rust Detected";
                 severity = "high";
                 observations.append("Significant necrotic brown tissue detected. ");
+            } else if (darkRatio > 0.1) {
+                disease = "Possible Blight / Necrosis";
+                severity = "high";
+                observations.append("Dark necrotic patches detected, indicating blight or necrosis. ");
             } else if (yellowRatio > 0.2) {
                 disease = "Chlorosis / Nutrient Deficiency";
                 severity = "medium";
@@ -404,10 +421,15 @@ public class DetectController {
             org.springframework.http.HttpEntity<org.springframework.util.MultiValueMap<String, Object>> requestEntity = 
                     new org.springframework.http.HttpEntity<>(body, headers);
 
-            ResponseEntity<Map> response = restTemplate.postForEntity(mlServiceUrl, requestEntity, Map.class);
+            org.springframework.http.ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    mlServiceUrl,
+                    HttpMethod.POST,
+                    requestEntity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
             
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return (Map<String, Object>) response.getBody();
+                return response.getBody();
             }
         } catch (Exception e) {
             System.err.println("Error calling Python ML service: " + e.getMessage());

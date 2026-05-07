@@ -1,6 +1,7 @@
 package com.aiplantanalyze.controller;
 
 import com.aiplantanalyze.model.User;
+import com.aiplantanalyze.repository.ScanRepository;
 import com.aiplantanalyze.repository.UserRepository;
 import com.aiplantanalyze.security.AuthService;
 import com.aiplantanalyze.security.JwtUtil;
@@ -18,15 +19,18 @@ import java.util.Optional;
 @RequestMapping("/api/auth")
 public class AuthController {
     private final UserRepository userRepository;
+    private final ScanRepository scanRepository;
     private final BCryptPasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
     private final AuthService authService;
 
     public AuthController(UserRepository userRepository,
+                          ScanRepository scanRepository,
                           BCryptPasswordEncoder passwordEncoder,
                           JwtUtil jwtUtil,
                           AuthService authService) {
         this.userRepository = userRepository;
+        this.scanRepository = scanRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.authService = authService;
@@ -182,6 +186,11 @@ public class AuthController {
                 }
             }
             if (updates.containsKey("password")) {
+                String providedCurrent = updates.containsKey("currentPassword") ? (String) updates.get("currentPassword") : null;
+                if (providedCurrent == null || !passwordEncoder.matches(providedCurrent, user.getPassword())) {
+                    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                            .body(Map.of("message", "Current password is incorrect."));
+                }
                 user.setPassword(passwordEncoder.encode((String) updates.get("password")));
             }
             user.setUpdatedAt(new java.util.Date());
@@ -189,6 +198,31 @@ public class AuthController {
             Map<String, Object> response = buildUserResponse(updatedUser);
             response.put("token", jwtUtil.generateToken(updatedUser.getId()));
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Server error", "error", ex.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/profile")
+    public ResponseEntity<?> deleteProfile(@RequestBody Map<String, String> request,
+                                           HttpServletRequest httpRequest) {
+        try {
+            User user = authService.getRequiredUser(httpRequest);
+            String currentPassword = request.get("currentPassword");
+
+            if (currentPassword == null || !passwordEncoder.matches(currentPassword, user.getPassword())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("message", "Current password is incorrect."));
+            }
+
+            scanRepository.deleteByUserId(user.getId());
+            userRepository.delete(user);
+
+            return ResponseEntity.ok(Map.of("message", "Account and scan history deleted."));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", ex.getMessage()));

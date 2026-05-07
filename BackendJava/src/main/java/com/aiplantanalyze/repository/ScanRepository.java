@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface ScanRepository extends MongoRepository<Scan, String> {
     List<Scan> findByUserIdOrderByDateDesc(String userId);
+    void deleteByUserId(String userId);
 }

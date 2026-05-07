@@ -22,6 +22,22 @@ const DashboardPage = () => {
   const fileInputRef = useRef(null);
 
   const [modelType, setModelType] = useState("Initializing Core...");
+  const [notification, setNotification] = useState(null);
+
+  const getAuthToken = () => localStorage.getItem("token");
+  const getUserId = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      return user?.id || user?._id || null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getHistoryStorageKey = () => {
+    const userId = getUserId();
+    return userId ? `scanHistory_${userId}` : "scanHistory_guest";
+  };
 
   useEffect(() => {
     // Stage 1: Create the specialized Plant ML model
@@ -34,41 +50,46 @@ const DashboardPage = () => {
         // 1. Load the Base Model (Feature Extractor)
         setModelType("Loading Feature Extractor...");
         const baseModel = await mobilenet.load();
-        
+
         // 2. Define Custom Neural Network Architecture
         // This is where we "Create" the localized model layers
         setModelType("Defining Custom Layers...");
         const customModel = tf.sequential();
-        
+
         // We add specialized dense layers for plant diagnostics
-        customModel.add(tf.layers.dense({
-          units: 128,
-          activation: 'relu',
-          inputShape: [1000] // MobileNet output shape
-        }));
+        customModel.add(
+          tf.layers.dense({
+            units: 128,
+            activation: "relu",
+            inputShape: [1000], // MobileNet output shape
+          }),
+        );
         customModel.add(tf.layers.dropout({ rate: 0.2 }));
-        customModel.add(tf.layers.dense({
-          units: 64,
-          activation: 'relu'
-        }));
-        customModel.add(tf.layers.dense({
-          units: 5, // 5 specialized plant health categories
-          activation: 'softmax'
-        }));
+        customModel.add(
+          tf.layers.dense({
+            units: 64,
+            activation: "relu",
+          }),
+        );
+        customModel.add(
+          tf.layers.dense({
+            units: 5, // 5 specialized plant health categories
+            activation: "softmax",
+          }),
+        );
 
         customModel.compile({
           optimizer: tf.train.adam(0.0001),
-          loss: 'categoricalCrossentropy',
-          metrics: ['accuracy']
+          loss: "categoricalCrossentropy",
+          metrics: ["accuracy"],
         });
 
         // 3. Glue them together in a "Deep Plant Analytic Pipeline"
         setModel({ base: baseModel, classifier: customModel });
-        
+
         setIsModelLoading(false);
         setModelType("Deep Plant Model v1.0 [LOCAL]");
         console.log("Custom ML model created and layers initialized.");
-
       } catch (err) {
         console.error("ML Model Creation Failed:", err);
         setError("Local Model Creation failed. Falling back to basic vision.");
@@ -76,10 +97,28 @@ const DashboardPage = () => {
     };
 
     initializeCustomModel();
-    
+
     const fetchScanHistory = async () => {
       try {
-        const storedHistory = localStorage.getItem("scanHistory");
+        const token = getAuthToken();
+        if (token) {
+          try {
+            const apiHistory = await plantService.getScanHistory();
+            setScanHistory(apiHistory);
+            localStorage.setItem(
+              getHistoryStorageKey(),
+              JSON.stringify(apiHistory),
+            );
+            return;
+          } catch (apiError) {
+            console.warn(
+              "Scan history API failed, falling back to local storage:",
+              apiError,
+            );
+          }
+        }
+
+        const storedHistory = localStorage.getItem(getHistoryStorageKey());
         if (storedHistory) {
           setScanHistory(JSON.parse(storedHistory));
         }
@@ -178,19 +217,24 @@ const DashboardPage = () => {
     try {
       setIsAnalyzing(true);
       setError(null);
-      
+
       let imageFile;
       if (capturedImage) {
         // Convert base64 to Blob/File
-        const byteString = atob(capturedImage.split(',')[1]);
-        const mimeString = capturedImage.split(',')[0].split(':')[1].split(';')[0];
+        const byteString = atob(capturedImage.split(",")[1]);
+        const mimeString = capturedImage
+          .split(",")[0]
+          .split(":")[1]
+          .split(";")[0];
         const ab = new ArrayBuffer(byteString.length);
         const ia = new Uint8Array(ab);
         for (let i = 0; i < byteString.length; i++) {
           ia[i] = byteString.charCodeAt(i);
         }
-        const blob = new Blob([ab], {type: mimeString});
-        imageFile = new File([blob], "captured-image.jpg", {type: mimeString});
+        const blob = new Blob([ab], { type: mimeString });
+        imageFile = new File([blob], "captured-image.jpg", {
+          type: mimeString,
+        });
       } else if (uploadedImage) {
         imageFile = uploadedImage.file;
       } else {
@@ -201,7 +245,7 @@ const DashboardPage = () => {
       try {
         const response = await plantService.detectDisease(imageFile);
         console.log("Python ML service analysis successful:", response);
-        
+
         // Extract relevant data, handling possible field name differences
         const result = {
           disease: response.disease || "Unknown",
@@ -210,11 +254,13 @@ const DashboardPage = () => {
           healthScore: response.healthScore || 0,
           treatment: response.treatment || "No treatment found.",
           prevention: response.prevention || "No prevention found.",
-          observations: response.observations || "Analysis completed by specialized Python ML engine."
+          observations:
+            response.observations ||
+            "Analysis completed by specialized Python ML engine.",
         };
-        
+
         setAnalysisResult(result);
-        
+
         // Save to local persistence
         const newScan = {
           id: response.id || Date.now(),
@@ -225,11 +271,17 @@ const DashboardPage = () => {
 
         const updatedHistory = [newScan, ...scanHistory];
         setScanHistory(updatedHistory);
-        localStorage.setItem("scanHistory", JSON.stringify(updatedHistory));
-        
+        localStorage.setItem(
+          getHistoryStorageKey(),
+          JSON.stringify(updatedHistory),
+        );
+
         return; // Success, exit function
       } catch (backendError) {
-        console.warn("Backend analysis failed, attempting local fallback:", backendError);
+        console.warn(
+          "Backend analysis failed, attempting local fallback:",
+          backendError,
+        );
       }
 
       // --- FALLBACK: Local Multi-Stage Inference ---
@@ -241,26 +293,64 @@ const DashboardPage = () => {
       let imageUrl = capturedImage || uploadedImage.url;
 
       imageElement.src = imageUrl;
-      await new Promise((resolve) => { imageElement.onload = resolve; });
+      await new Promise((resolve) => {
+        imageElement.onload = resolve;
+      });
 
       console.log("Stage 1: Extracting visual features locally...");
       const predictions = await model.base.classify(imageElement);
-      
+
       console.log("Stage 2: Processing through local neural layers...");
       const topLabel = predictions[0].className.toLowerCase();
       const topProb = Math.round(predictions[0].probability * 100);
-      
+
       // --- DYNAMIC VARIETY ENGINE ---
       // We map the unidentified/generic labels to a variety of plant conditions
       const variations = [
-         { dz: "Fungal Leaf Spot", sv: "medium", hs: 64, tr: "Apply copper-based fungicide. Avoid evening irrigation.", obs: "Spotted lesions with yellow halos detected." },
-         { dz: "Early Stage Blight", sv: "high", hs: 38, tr: "Prune affected areas. Apply organic sulfur spray.", obs: "Necrotic tissue patterns spreading along veins." },
-         { dz: "Iron Chlorosis", sv: "low", hs: 72, tr: "Adjust soil pH and apply chelated iron.", obs: "Interveinal yellowing indicative of nutrient lockout." },
-         { dz: "Aphid Cluster", sv: "medium", hs: 55, tr: "Introduce ladybugs or use neem oil spray.", obs: "Clustered irregular nodes on stem-leaf junctions." },
-         { dz: "Healthy Specimen", sv: "low", hs: 96, tr: "Maintain current irrigation and light levels.", obs: "Optimal chlorophyll signature across primary nodes." },
-         { dz: "Mild Mildew", sv: "low", hs: 81, tr: "Increase airflow and reduce humidity.", obs: "Surface shows early signs of powdery white spores." }
+        {
+          dz: "Fungal Leaf Spot",
+          sv: "medium",
+          hs: 64,
+          tr: "Apply copper-based fungicide. Avoid evening irrigation.",
+          obs: "Spotted lesions with yellow halos detected.",
+        },
+        {
+          dz: "Early Stage Blight",
+          sv: "high",
+          hs: 38,
+          tr: "Prune affected areas. Apply organic sulfur spray.",
+          obs: "Necrotic tissue patterns spreading along veins.",
+        },
+        {
+          dz: "Iron Chlorosis",
+          sv: "low",
+          hs: 72,
+          tr: "Adjust soil pH and apply chelated iron.",
+          obs: "Interveinal yellowing indicative of nutrient lockout.",
+        },
+        {
+          dz: "Aphid Cluster",
+          sv: "medium",
+          hs: 55,
+          tr: "Introduce ladybugs or use neem oil spray.",
+          obs: "Clustered irregular nodes on stem-leaf junctions.",
+        },
+        {
+          dz: "Healthy Specimen",
+          sv: "low",
+          hs: 96,
+          tr: "Maintain current irrigation and light levels.",
+          obs: "Optimal chlorophyll signature across primary nodes.",
+        },
+        {
+          dz: "Mild Mildew",
+          sv: "low",
+          hs: 81,
+          tr: "Increase airflow and reduce humidity.",
+          obs: "Surface shows early signs of powdery white spores.",
+        },
       ];
-      
+
       // Use the length of the label as a simple deterministic seed for variety
       const vIndex = topLabel.length % variations.length;
       const v = variations[vIndex];
@@ -272,7 +362,7 @@ const DashboardPage = () => {
         healthScore: v.hs,
         treatment: v.tr,
         prevention: "Implement standard crop rotation and tools sterilization.",
-        observations: `Local Model interpreted feature "${topLabel}" as: ${v.obs}`
+        observations: `Local Model interpreted feature "${topLabel}" as: ${v.obs}`,
       };
 
       setAnalysisResult(localResult);
@@ -287,11 +377,15 @@ const DashboardPage = () => {
 
       const updatedLocalHistory = [newLocalScan, ...scanHistory];
       setScanHistory(updatedLocalHistory);
-      localStorage.setItem("scanHistory", JSON.stringify(updatedLocalHistory));
-
+      localStorage.setItem(
+        getHistoryStorageKey(),
+        JSON.stringify(updatedLocalHistory),
+      );
     } catch (err) {
       console.error("Analysis Error:", err);
-      setError("Analysis failed. Please check your connection or image clarity.");
+      setError(
+        "Analysis failed. Please check your connection or image clarity.",
+      );
     } finally {
       setIsAnalyzing(false);
     }
@@ -307,6 +401,80 @@ const DashboardPage = () => {
         return "severity-low";
       default:
         return "";
+    }
+  };
+
+  const handleGenerateReport = () => {
+    if (!analysisResult) {
+      setError("Please run a plant scan before generating a report.");
+      return;
+    }
+
+    const reportHtml = `
+      <html>
+        <head>
+          <title>PlantAI Diagnostic Report</title>
+          <style>
+            body { font-family: Arial, sans-serif; padding: 32px; color: #111; }
+            h1 { color: #0f766e; }
+            .section { margin-bottom: 20px; }
+            .label { font-weight: 700; color: #374151; }
+          </style>
+        </head>
+        <body>
+          <h1>PlantAI Diagnostic Report</h1>
+          <div class="section"><span class="label">Disease:</span> ${analysisResult.disease}</div>
+          <div class="section"><span class="label">Confidence:</span> ${analysisResult.confidence}%</div>
+          <div class="section"><span class="label">Severity:</span> ${analysisResult.severity}</div>
+          <div class="section"><span class="label">Health Score:</span> ${analysisResult.healthScore}</div>
+          <div class="section"><span class="label">Treatment:</span><br/>${analysisResult.treatment}</div>
+          <div class="section"><span class="label">Prevention:</span><br/>${analysisResult.prevention}</div>
+          <div class="section"><span class="label">Notes:</span><br/>${analysisResult.observations || "Generated by PlantAI."}</div>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      setError(
+        "Unable to open a new window. Please allow popups in your browser.",
+      );
+      return;
+    }
+    printWindow.document.write(reportHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
+  const handleShareDiagnosis = async () => {
+    if (!analysisResult) {
+      setError("Please run a plant scan before sharing the diagnosis.");
+      return;
+    }
+
+    const shareText = `PlantAI Diagnosis Summary\n\nDisease: ${analysisResult.disease}\nConfidence: ${analysisResult.confidence}%\nSeverity: ${analysisResult.severity}\nHealth Score: ${analysisResult.healthScore}\n\nTreatment: ${analysisResult.treatment}\nPrevention: ${analysisResult.prevention}\n\nGenerated by PlantAI.`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "PlantAI Diagnosis",
+          text: shareText,
+        });
+        setNotification("Diagnosis shared successfully.");
+      } catch (shareError) {
+        setError("Share was cancelled or is not available in this browser.");
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(shareText);
+      setNotification(
+        "Diagnosis copied to clipboard. Paste it into email, chat, or notes.",
+      );
+    } catch (clipboardError) {
+      setError("Copy to clipboard failed. Please copy the diagnosis manually.");
     }
   };
 
@@ -331,11 +499,19 @@ const DashboardPage = () => {
       <div className="flex flex-col gap-6">
         {!captureMode && !capturedImage && !uploadedImage && (
           <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className={`px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-widest flex items-center space-x-2 ${
-              isModelLoading ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-            }`}>
-              {isModelLoading && <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>}
-              {!isModelLoading && <span className="w-2 h-2 rounded-full bg-emerald-500"></span>}
+            <div
+              className={`px-4 py-2 rounded-full border text-xs font-bold uppercase tracking-widest flex items-center space-x-2 ${
+                isModelLoading
+                  ? "bg-amber-50 text-amber-600 border-amber-100"
+                  : "bg-emerald-50 text-emerald-600 border-emerald-100"
+              }`}
+            >
+              {isModelLoading && (
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              )}
+              {!isModelLoading && (
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+              )}
               <span>{modelType}</span>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 w-full">
@@ -408,6 +584,24 @@ const DashboardPage = () => {
               <line x1="12" y1="16" x2="12.01" y2="16"></line>
             </svg>
             <p className="m-0">{error}</p>
+          </div>
+        )}
+
+        {notification && (
+          <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-lg text-emerald-700">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-5 h-5 flex-shrink-0"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+            <p className="m-0">{notification}</p>
           </div>
         )}
 
@@ -524,7 +718,7 @@ const DashboardPage = () => {
         {analysisResult && (
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-emerald-50 overflow-hidden relative">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-[60px] -translate-y-1/2 translate-x-1/2"></div>
-            
+
             <div className="flex flex-col md:flex-row justify-between items-start mb-10 gap-8">
               <div className="flex-1">
                 <div className="inline-flex items-center space-x-2 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase tracking-widest mb-4">
@@ -536,13 +730,20 @@ const DashboardPage = () => {
                 </h2>
                 <div className="flex items-center space-x-4">
                   <span className="text-sm font-bold text-slate-400">
-                    Model Confidence: <span className="text-slate-900">{analysisResult.confidence}%</span>
+                    Model Confidence:{" "}
+                    <span className="text-slate-900">
+                      {analysisResult.confidence}%
+                    </span>
                   </span>
-                  <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
-                    analysisResult.severity === "high" ? "bg-rose-50 text-rose-600" : 
-                    analysisResult.severity === "medium" ? "bg-amber-50 text-amber-600" : 
-                    "bg-emerald-50 text-emerald-600"
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                      analysisResult.severity === "high"
+                        ? "bg-rose-50 text-rose-600"
+                        : analysisResult.severity === "medium"
+                          ? "bg-amber-50 text-amber-600"
+                          : "bg-emerald-50 text-emerald-600"
+                    }`}
+                  >
                     {analysisResult.severity} Severity
                   </span>
                 </div>
@@ -551,26 +752,41 @@ const DashboardPage = () => {
               <div className="w-full md:w-auto glass-card p-6 rounded-3xl flex items-center space-x-6 border-emerald-100 shadow-emerald-500/5">
                 <div className="relative w-20 h-20">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                    <path className="stroke-slate-100" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="transition-all duration-1000 ease-out" 
+                    <path
+                      className="stroke-slate-100"
+                      strokeWidth="3"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    />
+                    <path
+                      className="transition-all duration-1000 ease-out"
                       stroke={getHealthScoreColor(analysisResult.healthScore)}
-                      strokeWidth="3" 
-                      strokeDasharray={`${analysisResult.healthScore}, 100`} 
-                      strokeLinecap="round" 
-                      fill="none" 
-                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                      strokeWidth="3"
+                      strokeDasharray={`${analysisResult.healthScore}, 100`}
+                      strokeLinecap="round"
+                      fill="none"
+                      d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-xl font-black text-slate-800 leading-none">{analysisResult.healthScore}</span>
-                    <span className="text-[8px] font-bold text-slate-400 uppercase">Score</span>
+                    <span className="text-xl font-black text-slate-800 leading-none">
+                      {analysisResult.healthScore}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 uppercase">
+                      Score
+                    </span>
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">Health Index</h4>
+                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">
+                    Health Index
+                  </h4>
                   <p className="text-sm font-bold text-slate-900">
-                    {analysisResult.healthScore > 80 ? "Optimal Growth Condition" : 
-                     analysisResult.healthScore > 50 ? "Requires Intervention" : "Critical Condition"}
+                    {analysisResult.healthScore > 80
+                      ? "Optimal Growth Condition"
+                      : analysisResult.healthScore > 50
+                        ? "Requires Intervention"
+                        : "Critical Condition"}
                   </p>
                 </div>
               </div>
@@ -580,11 +796,24 @@ const DashboardPage = () => {
               {/* Technical Observations Section */}
               <div className="lg:col-span-12 glass-card p-6 rounded-2xl bg-slate-50/50 border-slate-100">
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center">
-                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                    <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                  </svg>
                   ML Feature Extraction Logs
                 </h3>
                 <p className="text-sm font-medium text-slate-600 leading-relaxed italic">
-                   "{analysisResult.observations || "Visual patterns indicate localized necrotic tissue concentrations with minor chlorotic variance across the leaf surface."}"
+                  "
+                  {analysisResult.observations ||
+                    "Visual patterns indicate localized necrotic tissue concentrations with minor chlorotic variance across the leaf surface."}
+                  "
                 </p>
               </div>
 
@@ -592,7 +821,16 @@ const DashboardPage = () => {
                 <div className="p-2">
                   <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center">
                     <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center mr-3">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                      <svg
+                        className="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                      >
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                      </svg>
                     </div>
                     Treatment Protocol
                   </h3>
@@ -608,7 +846,15 @@ const DashboardPage = () => {
                 <div className="p-2">
                   <h3 className="text-lg font-black text-slate-900 mb-4 flex items-center">
                     <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-600 flex items-center justify-center mr-3">
-                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                      <svg
+                        className="w-4 h-4"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                      >
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                      </svg>
                     </div>
                     Prevention Strategy
                   </h3>
@@ -619,24 +865,29 @@ const DashboardPage = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="lg:col-span-12 flex flex-col sm:flex-row gap-4 pt-6 border-t border-slate-50">
-                <button className="btn btn-primary flex-1 py-4">
+                <button
+                  className="btn btn-primary flex-1 py-4"
+                  onClick={handleGenerateReport}
+                >
                   Generate PDF Report
                 </button>
-                <button className="btn glass-card flex-1 py-4 hover:bg-slate-50">
-                  Share Diagnosis 
+                <button
+                  className="btn glass-card flex-1 py-4 hover:bg-slate-50"
+                  onClick={handleShareDiagnosis}
+                >
+                  Share Diagnosis
                 </button>
                 {analysisResult.severity === "high" && (
-                   <button className="btn bg-rose-500 text-white flex-1 py-4 hover:bg-rose-600 shadow-rose-200">
-                     Urgent Expert Review
-                   </button>
+                  <button className="btn bg-rose-500 text-white flex-1 py-4 hover:bg-rose-600 shadow-rose-200">
+                    Urgent Expert Review
+                  </button>
                 )}
               </div>
             </div>
           </div>
         )}
-
       </div>
     );
   };

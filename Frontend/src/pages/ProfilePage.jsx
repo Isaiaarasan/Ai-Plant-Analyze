@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import plantService from '../services/plantService';
-
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import plantService from "../services/plantService";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -9,29 +8,50 @@ const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
-    location: '',
-    bio: ''
+    username: "",
+    email: "",
+    location: "",
+    bio: "",
   });
-  const [updateMessage, setUpdateMessage] = useState('');
+  const [updateMessage, setUpdateMessage] = useState("");
+  const [securityMessage, setSecurityMessage] = useState("");
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showDeleteForm, setShowDeleteForm] = useState(false);
+  const [securityForm, setSecurityForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [deleteForm, setDeleteForm] = useState({
+    currentPassword: "",
+    confirmText: "",
+  });
+
+  const languageOptions = [
+    { code: "en", label: "English" },
+    { code: "es", label: "Spanish" },
+    { code: "fr", label: "French" },
+    { code: "de", label: "German" },
+    { code: "zh", label: "Chinese" },
+    { code: "ta", label: "Tamil" },
+  ];
 
   useEffect(() => {
     // Check if user is logged in
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
 
     fetchUserData();
 
     // Apply dark mode if it's set in localStorage
-    const darkMode = localStorage.getItem('darkMode') === 'true';
+    const darkMode = localStorage.getItem("darkMode") === "true";
     if (darkMode) {
-      document.body.classList.add('dark-mode');
+      document.body.classList.add("dark-mode");
     } else {
-      document.body.classList.remove('dark-mode');
+      document.body.classList.remove("dark-mode");
     }
   }, [navigate]);
 
@@ -44,18 +64,37 @@ const ProfilePage = () => {
       const enhancedUserData = {
         ...userData,
         stats: userData.stats || { scans: 0, plants: 0, badges: 0 },
-        preferences: userData.preferences || { notifications: false, darkMode: false, language: 'en' }
+        preferences: userData.preferences || {
+          notifications: false,
+          darkMode: false,
+          language: "en",
+        },
       };
 
+      const history = await plantService.getScanHistory().catch(() => []);
+      const scanCount = Array.isArray(history)
+        ? history.length
+        : enhancedUserData.stats.scans;
+      enhancedUserData.stats.scans = Math.max(
+        enhancedUserData.stats.scans,
+        scanCount,
+      );
+      enhancedUserData.preferences.language =
+        enhancedUserData.preferences.language || "en";
       setUser(enhancedUserData);
       setFormData({
-        username: enhancedUserData.username || '',
-        email: enhancedUserData.email || '',
-        location: enhancedUserData.location || '',
-        bio: enhancedUserData.bio || ''
+        username: enhancedUserData.username || "",
+        email: enhancedUserData.email || "",
+        location: enhancedUserData.location || "",
+        bio: enhancedUserData.bio || "",
       });
+      document.documentElement.setAttribute(
+        "lang",
+        enhancedUserData.preferences.language,
+      );
+      localStorage.setItem("language", enhancedUserData.preferences.language);
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      console.error("Error fetching user data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -63,9 +102,9 @@ const ProfilePage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -82,66 +121,164 @@ const ProfilePage = () => {
         username: formData.username,
         email: formData.email,
         location: formData.location,
-        bio: formData.bio
+        bio: formData.bio,
       });
 
       setUser(updatedUser);
-      setUpdateMessage('Profile updated successfully!');
-      setTimeout(() => setUpdateMessage(''), 3000);
+      setUpdateMessage("Profile updated successfully!");
+      setTimeout(() => setUpdateMessage(""), 3000);
       setIsEditing(false);
     } catch (error) {
-      console.error('Error updating profile:', error);
-      setUpdateMessage('Failed to update profile. Please try again.');
+      console.error("Error updating profile:", error);
+      setUpdateMessage("Failed to update profile. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const updateLocalUser = (updatedUser) => {
+    if (updatedUser.token) {
+      localStorage.setItem("token", updatedUser.token);
+    }
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setUser((prev) => ({
+      ...prev,
+      ...updatedUser,
+      preferences: {
+        ...(prev?.preferences || {}),
+        ...(updatedUser.preferences || {}),
+      },
+      stats: {
+        ...(prev?.stats || {}),
+        ...(updatedUser.stats || {}),
+      },
+    }));
+  };
+
   const handleTogglePreference = async (preference) => {
     try {
-      // Ensure preferences object exists
       const preferences = user.preferences || {};
       const newValue = !preferences[preference];
 
-      // Update UI immediately for better user experience
-      setUser(prev => ({
+      setUser((prev) => ({
         ...prev,
         preferences: {
           ...(prev.preferences || {}),
-          [preference]: newValue
-        }
+          [preference]: newValue,
+        },
       }));
 
-      // If toggling dark mode, apply it to the body
-      if (preference === 'darkMode') {
+      if (preference === "darkMode") {
         if (newValue) {
-          document.body.classList.add('dark-mode');
-          localStorage.setItem('darkMode', 'true');
+          document.body.classList.add("dark-mode");
+          localStorage.setItem("darkMode", "true");
         } else {
-          document.body.classList.remove('dark-mode');
-          localStorage.setItem('darkMode', 'false');
+          document.body.classList.remove("dark-mode");
+          localStorage.setItem("darkMode", "false");
         }
       }
 
-      // Save to backend
-      await plantService.updateProfile({
+      const updated = await plantService.updateProfile({
         preferences: {
-          [preference]: newValue
-        }
+          ...preferences,
+          [preference]: newValue,
+        },
       });
+      updateLocalUser(updated);
     } catch (error) {
       console.error(`Error updating ${preference} preference:`, error);
-      // Revert UI change if API call fails
-      setUser(prev => {
+      setUser((prev) => {
         const prevPreferences = prev.preferences || {};
         return {
           ...prev,
           preferences: {
             ...prevPreferences,
-            [preference]: !prevPreferences[preference]
-          }
+            [preference]: !prevPreferences[preference],
+          },
         };
       });
+    }
+  };
+
+  const handleSecurityChange = (e) => {
+    const { name, value } = e.target;
+    setSecurityForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDeleteChange = (e) => {
+    const { name, value } = e.target;
+    setDeleteForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleChangePassword = async (e) => {
+    e.preventDefault();
+    setSecurityMessage("");
+    if (
+      !securityForm.currentPassword ||
+      !securityForm.newPassword ||
+      !securityForm.confirmPassword
+    ) {
+      setSecurityMessage("Please fill all password fields.");
+      return;
+    }
+    if (securityForm.newPassword.length < 6) {
+      setSecurityMessage("New password must be at least 6 characters.");
+      return;
+    }
+    if (securityForm.newPassword !== securityForm.confirmPassword) {
+      setSecurityMessage("New password and confirmation do not match.");
+      return;
+    }
+
+    try {
+      const updated = await plantService.changePassword({
+        currentPassword: securityForm.currentPassword,
+        password: securityForm.newPassword,
+      });
+      updateLocalUser(updated);
+      setSecurityMessage("Password updated successfully.");
+      setSecurityForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setShowPasswordForm(false);
+    } catch (error) {
+      console.error("Error changing password:", error);
+      setSecurityMessage(
+        error?.response?.data?.message || "Failed to update password.",
+      );
+    }
+  };
+
+  const handleDeleteAccount = async (e) => {
+    e.preventDefault();
+    setSecurityMessage("");
+    if (!deleteForm.currentPassword) {
+      setSecurityMessage(
+        "Please enter your current password to delete your account.",
+      );
+      return;
+    }
+    if (deleteForm.confirmText !== "DELETE") {
+      setSecurityMessage(
+        "Type DELETE in the confirmation field to confirm account deletion.",
+      );
+      return;
+    }
+
+    try {
+      await plantService.deleteAccount(deleteForm.currentPassword);
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("darkMode");
+      localStorage.removeItem("language");
+      navigate("/login");
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      setSecurityMessage(
+        error?.response?.data?.message || "Failed to delete account.",
+      );
     }
   };
 
@@ -161,8 +298,12 @@ const ProfilePage = () => {
         <div className="container">
           <div className="error-message">
             <h2>Error loading profile</h2>
-            <p>Unable to load your profile information. Please try again later.</p>
-            <button className="btn btn-primary" onClick={fetchUserData}>Retry</button>
+            <p>
+              Unable to load your profile information. Please try again later.
+            </p>
+            <button className="btn btn-primary" onClick={fetchUserData}>
+              Retry
+            </button>
           </div>
         </div>
       </div>
@@ -171,25 +312,25 @@ const ProfilePage = () => {
 
   const formatDate = (date) => {
     // Check if date is valid
-    if (!date) return 'Unknown date';
+    if (!date) return "Unknown date";
 
     try {
       // If date is a string, convert it to a Date object
-      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      const dateObj = typeof date === "string" ? new Date(date) : date;
 
       // Check if the date is valid
       if (isNaN(dateObj.getTime())) {
-        return 'Unknown date';
+        return "Unknown date";
       }
 
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
+      return new Intl.DateTimeFormat("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
       }).format(dateObj);
     } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Unknown date';
+      console.error("Error formatting date:", error);
+      return "Unknown date";
     }
   };
 
@@ -214,23 +355,35 @@ const ProfilePage = () => {
                 <div className="w-24 h-24 rounded-full bg-primary text-white text-4xl flex items-center justify-center font-bold mx-auto mb-4 shadow-md">
                   {user.username.charAt(0).toUpperCase()}
                 </div>
-                <h2 className="text-xl font-bold text-gray-800">{user.username}</h2>
-                <p className="text-sm text-gray-500">Member since {formatDate(user.joinDate)}</p>
+                <h2 className="text-xl font-bold text-gray-800">
+                  {user.username}
+                </h2>
+                <p className="text-sm text-gray-500">
+                  Member since {formatDate(user.joinDate)}
+                </p>
               </div>
 
               {!isEditing ? (
                 <div className="space-y-4">
                   <div className="py-3 border-b border-gray-100 last:border-0">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Email</h3>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                      Email
+                    </h3>
                     <p className="text-gray-700">{user.email}</p>
                   </div>
                   <div className="py-3 border-b border-gray-100 last:border-0">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Location</h3>
-                    <p className="text-gray-700">{user.location || 'Not specified'}</p>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                      Location
+                    </h3>
+                    <p className="text-gray-700">
+                      {user.location || "Not specified"}
+                    </p>
                   </div>
                   <div className="py-3 border-b border-gray-100 last:border-0">
-                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Bio</h3>
-                    <p className="text-gray-700">{user.bio || 'No bio yet'}</p>
+                    <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">
+                      Bio
+                    </h3>
+                    <p className="text-gray-700">{user.bio || "No bio yet"}</p>
                   </div>
                   <button
                     className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors cursor-pointer"
@@ -242,7 +395,12 @@ const ProfilePage = () => {
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
-                    <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                    <label
+                      htmlFor="username"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Username
+                    </label>
                     <input
                       type="text"
                       id="username"
@@ -254,7 +412,12 @@ const ProfilePage = () => {
                     />
                   </div>
                   <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Email
+                    </label>
                     <input
                       type="email"
                       id="email"
@@ -266,7 +429,12 @@ const ProfilePage = () => {
                     />
                   </div>
                   <div>
-                    <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                    <label
+                      htmlFor="location"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Location
+                    </label>
                     <input
                       type="text"
                       id="location"
@@ -277,7 +445,12 @@ const ProfilePage = () => {
                     />
                   </div>
                   <div>
-                    <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                    <label
+                      htmlFor="bio"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Bio
+                    </label>
                     <textarea
                       id="bio"
                       name="bio"
@@ -307,65 +480,93 @@ const ProfilePage = () => {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Preferences</h2>
+              <h2 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+                Preferences
+              </h2>
               <div className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-800">Notifications</h3>
-                    <p className="text-xs text-gray-500">Receive email alerts</p>
+                    <h3 className="text-sm font-medium text-gray-800">
+                      Notifications
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      Receive email alerts
+                    </p>
                   </div>
                   <button
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${user.preferences?.notifications ? 'bg-primary' : 'bg-gray-200'}`}
-                    onClick={() => handleTogglePreference('notifications')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${user.preferences?.notifications ? "bg-primary" : "bg-gray-200"}`}
+                    onClick={() => handleTogglePreference("notifications")}
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.preferences?.notifications ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.preferences?.notifications ? "translate-x-6" : "translate-x-1"}`}
+                    />
                   </button>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-800">Dark Mode</h3>
+                    <h3 className="text-sm font-medium text-gray-800">
+                      Dark Mode
+                    </h3>
                     <p className="text-xs text-gray-500">Use dark theme</p>
                   </div>
                   <button
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${user.preferences?.darkMode ? 'bg-primary' : 'bg-gray-200'}`}
-                    onClick={() => handleTogglePreference('darkMode')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${user.preferences?.darkMode ? "bg-primary" : "bg-gray-200"}`}
+                    onClick={() => handleTogglePreference("darkMode")}
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.preferences?.darkMode ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${user.preferences?.darkMode ? "translate-x-6" : "translate-x-1"}`}
+                    />
                   </button>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-800">Language</h3>
+                    <h3 className="text-sm font-medium text-gray-800">
+                      Language
+                    </h3>
                     <p className="text-xs text-gray-500">Preferred language</p>
                   </div>
                   <select
                     className="text-sm border-gray-300 bg-gray-50 rounded-md shadow-sm focus:border-primary focus:ring focus:ring-primary/20 focus:ring-opacity-50 p-1"
-                    value={user.preferences?.language || 'English'}
+                    value={user.preferences?.language || "en"}
                     onChange={async (e) => {
                       const newLanguage = e.target.value;
-                      setUser(prev => ({
+                      const updatedPreferences = {
+                        ...user.preferences,
+                        language: newLanguage,
+                      };
+                      setUser((prev) => ({
                         ...prev,
-                        preferences: { ...prev.preferences, language: newLanguage }
+                        preferences: updatedPreferences,
                       }));
-                      localStorage.setItem('language', newLanguage);
-                      document.documentElement.setAttribute('lang', newLanguage.toLowerCase());
-                      setUpdateMessage(`Language changed to ${newLanguage}`);
-                      setTimeout(() => setUpdateMessage(''), 3000);
+                      localStorage.setItem("language", newLanguage);
+                      document.documentElement.setAttribute(
+                        "lang",
+                        newLanguage,
+                      );
+                      setUpdateMessage(
+                        `Language changed to ${languageOptions.find((opt) => opt.code === newLanguage)?.label || newLanguage}`,
+                      );
+                      setTimeout(() => setUpdateMessage(""), 3000);
                       try {
-                        await plantService.updateProfile({ preferences: { ...user.preferences, language: newLanguage } });
+                        const updated = await plantService.updateProfile({
+                          preferences: updatedPreferences,
+                        });
+                        updateLocalUser(updated);
                       } catch (error) {
-                        console.error('Error updating language preference:', error);
+                        console.error(
+                          "Error updating language preference:",
+                          error,
+                        );
                       }
                     }}
                   >
-                    <option value="English">English</option>
-                    <option value="Spanish">Spanish</option>
-                    <option value="French">French</option>
-                    <option value="German">German</option>
-                    <option value="Chinese">Chinese</option>
-                    <option value="Tamil">Tamil</option>
+                    {languageOptions.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -375,32 +576,70 @@ const ProfilePage = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-6 pb-2 border-b border-gray-100">Activity Overview</h2>
+              <h2 className="text-lg font-bold text-gray-800 mb-6 pb-2 border-b border-gray-100">
+                Activity Overview
+              </h2>
               <div className="grid grid-cols-3 gap-4 mb-8">
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <span className="block text-3xl font-bold text-primary mb-1">{user.stats?.scans || 0}</span>
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Total Scans</span>
+                  <span className="block text-3xl font-bold text-primary mb-1">
+                    {user.stats?.scans || 0}
+                  </span>
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Total Scans
+                  </span>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <span className="block text-3xl font-bold text-primary mb-1">{user.stats?.plants || 0}</span>
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Plants Tracked</span>
+                  <span className="block text-3xl font-bold text-primary mb-1">
+                    {user.stats?.plants || 0}
+                  </span>
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Plants Tracked
+                  </span>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 text-center">
-                  <span className="block text-3xl font-bold text-primary mb-1">{user.stats?.badges || 0}</span>
-                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Badges Earned</span>
+                  <span className="block text-3xl font-bold text-primary mb-1">
+                    {user.stats?.badges || 0}
+                  </span>
+                  <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                    Badges Earned
+                  </span>
                 </div>
               </div>
 
               <div className="flex flex-col sm:flex-row gap-4">
-                <Link to="/dashboard" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium shadow-md hover:shadow-lg">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <Link
+                  to="/dashboard"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors font-medium shadow-md hover:shadow-lg"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                     <circle cx="12" cy="13" r="4"></circle>
                   </svg>
                   Start New Scan
                 </Link>
-                <Link to="/history" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <Link
+                  to="/history"
+                  className="flex-1 flex items-center justify-center gap-2 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
@@ -410,44 +649,248 @@ const ProfilePage = () => {
             </div>
 
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">Account Security</h2>
+              <h2 className="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">
+                Account Security
+              </h2>
               <div className="flex flex-col gap-4">
-                <button className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors w-full text-left cursor-pointer group">
+                <button
+                  type="button"
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors w-full text-left cursor-pointer group"
+                  onClick={() => {
+                    setShowPasswordForm((prev) => !prev);
+                    setShowDeleteForm(false);
+                    setSecurityMessage("");
+                  }}
+                >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-white rounded-md shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-5 h-5 text-gray-600"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <rect
+                          x="3"
+                          y="11"
+                          width="18"
+                          height="11"
+                          rx="2"
+                          ry="2"
+                        ></rect>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-medium text-gray-800">Change Password</h4>
-                      <p className="text-xs text-gray-500">Update your password to keep your account secure</p>
+                      <h4 className="font-medium text-gray-800">
+                        Change Password
+                      </h4>
+                      <p className="text-xs text-gray-500">
+                        Update your password to keep your account secure
+                      </p>
                     </div>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-gray-400 group-hover:text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5 text-gray-400 group-hover:text-gray-600"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </button>
+                {showPasswordForm && (
+                  <form
+                    onSubmit={handleChangePassword}
+                    className="space-y-4 px-4 py-4 border border-gray-200 rounded-lg bg-gray-50"
+                  >
+                    <div>
+                      <label
+                        htmlFor="currentPassword"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        id="currentPassword"
+                        name="currentPassword"
+                        value={securityForm.currentPassword}
+                        onChange={handleSecurityChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="newPassword"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        name="newPassword"
+                        value={securityForm.newPassword}
+                        onChange={handleSecurityChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="confirmPassword"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        value={securityForm.confirmPassword}
+                        onChange={handleSecurityChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                    {securityMessage && (
+                      <div className="text-sm text-red-600">
+                        {securityMessage}
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors"
+                      >
+                        Save Password
+                      </button>
+                      <button
+                        type="button"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                        onClick={() => setShowPasswordForm(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
 
-                <button className="flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors w-full text-left cursor-pointer group">
+                <button
+                  type="button"
+                  className="flex items-center justify-between p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors w-full text-left cursor-pointer group"
+                  onClick={() => {
+                    setShowDeleteForm((prev) => !prev);
+                    setShowPasswordForm(false);
+                    setSecurityMessage("");
+                  }}
+                >
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-white rounded-md shadow-sm">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="w-5 h-5 text-red-500"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
                         <path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"></path>
                         <line x1="18" y1="9" x2="12" y2="15"></line>
                         <line x1="12" y1="9" x2="18" y2="15"></line>
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-medium text-red-700">Delete Account</h4>
-                      <p className="text-xs text-red-500 text-opacity-80">Permanently delete your account and all data</p>
+                      <h4 className="font-medium text-red-700">
+                        Delete Account
+                      </h4>
+                      <p className="text-xs text-red-500 text-opacity-80">
+                        Permanently delete your account and all data
+                      </p>
                     </div>
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-red-300 group-hover:text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="w-5 h-5 text-red-300 group-hover:text-red-500"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
                     <polyline points="9 18 15 12 9 6"></polyline>
                   </svg>
                 </button>
+                {showDeleteForm && (
+                  <form
+                    onSubmit={handleDeleteAccount}
+                    className="space-y-4 px-4 py-4 border border-red-200 rounded-lg bg-red-50"
+                  >
+                    <div>
+                      <label
+                        htmlFor="deleteCurrentPassword"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        id="deleteCurrentPassword"
+                        name="currentPassword"
+                        value={deleteForm.currentPassword}
+                        onChange={handleDeleteChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="confirmText"
+                        className="block text-sm font-medium text-gray-700 mb-1"
+                      >
+                        Type DELETE to confirm
+                      </label>
+                      <input
+                        type="text"
+                        id="confirmText"
+                        name="confirmText"
+                        value={deleteForm.confirmText}
+                        onChange={handleDeleteChange}
+                        placeholder="DELETE"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                      />
+                    </div>
+                    {securityMessage && (
+                      <div className="text-sm text-red-600">
+                        {securityMessage}
+                      </div>
+                    )}
+                    <div className="flex gap-3">
+                      <button
+                        type="submit"
+                        className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      >
+                        Delete Account
+                      </button>
+                      <button
+                        type="button"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                        onClick={() => setShowDeleteForm(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
               </div>
             </div>
           </div>

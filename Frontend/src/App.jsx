@@ -1,34 +1,56 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { UNSAFE_DataRouterContext, UNSAFE_DataRouterStateContext } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import React, { useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  createBrowserRouter,
+  RouterProvider,
+} from "react-router-dom";
+import {
+  UNSAFE_DataRouterContext,
+  UNSAFE_DataRouterStateContext,
+} from "react-router-dom";
+import Navbar from "./components/Navbar";
 
-
-
-import LandingPage from './pages/LandingPage';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import DashboardPage from './pages/DashboardPage';
-import HistoryPage from './pages/HistoryPage';
-import ForumPage from './pages/ForumPage';
-import DiscussionPage from './pages/DiscussionPage';
-import AboutPage from './pages/AboutPage';
-import FeaturesPage from './pages/FeaturesPage';
-import ProfilePage from './pages/ProfilePage';
-import Chatbox from './components/Chatbox';
+import LandingPage from "./pages/LandingPage";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import DashboardPage from "./pages/DashboardPage";
+import HistoryPage from "./pages/HistoryPage";
+import ForumPage from "./pages/ForumPage";
+import DiscussionPage from "./pages/DiscussionPage";
+import AboutPage from "./pages/AboutPage";
+import FeaturesPage from "./pages/FeaturesPage";
+import ProfilePage from "./pages/ProfilePage";
+import Chatbox from "./components/Chatbox";
 
 // Auth guard for protected routes
 const ProtectedRoute = ({ children }) => {
-  const isAuthenticated = localStorage.getItem('token');
+  const isAuthenticated = localStorage.getItem("token");
   return isAuthenticated ? children : <Navigate to="/login" />;
 };
 
 function App() {
+  useEffect(() => {
+    const darkMode = localStorage.getItem("darkMode") === "true";
+    if (darkMode) {
+      document.body.classList.add("dark-mode");
+    } else {
+      document.body.classList.remove("dark-mode");
+    }
+
+    const language = localStorage.getItem("language");
+    if (language) {
+      document.documentElement.setAttribute("lang", language);
+    }
+  }, []);
+
   return (
     <Router
       future={{
         v7_startTransition: true,
-        v7_relativeSplatPath: true
+        v7_relativeSplatPath: true,
       }}
     >
       <Navbar />
@@ -38,36 +60,54 @@ function App() {
         <Route path="/signup" element={<SignupPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/features" element={<FeaturesPage />} />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <DashboardPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/history" element={
-          <ProtectedRoute>
-            <HistoryPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/forum" element={
-          <ProtectedRoute>
-            <ForumPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/forum/:postId" element={
-          <ProtectedRoute>
-            <DiscussionPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/profile" element={
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/Chatbox" element={
-          <ProtectedRoute>
-            <Chatbox />
-          </ProtectedRoute>
-        } />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/history"
+          element={
+            <ProtectedRoute>
+              <HistoryPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/forum"
+          element={
+            <ProtectedRoute>
+              <ForumPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/forum/:postId"
+          element={
+            <ProtectedRoute>
+              <DiscussionPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/Chatbox"
+          element={
+            <ProtectedRoute>
+              <Chatbox />
+            </ProtectedRoute>
+          }
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

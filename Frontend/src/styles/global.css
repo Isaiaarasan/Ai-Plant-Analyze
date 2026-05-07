@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -30,13 +30,19 @@
   --color-info-dark: #1e3a8a;
 
   /* Font */
-  --font-sans: 'Plus Jakarta Sans', 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  --font-sans:
+    "Plus Jakarta Sans", "Outfit", -apple-system, BlinkMacSystemFont,
+    "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans",
+    "Helvetica Neue", sans-serif;
 
   /* Shadows - Premium Elevation */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-md:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg:
+    0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-xl:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
   --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 }
@@ -45,14 +51,19 @@
 @layer base {
   body {
     @apply font-sans text-text bg-background antialiased leading-relaxed;
-    background-image: 
-      radial-gradient(at 0% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%), 
+    background-image:
+      radial-gradient(at 0% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%),
       radial-gradient(at 50% 0%, hsla(202, 80%, 91%, 1) 0, transparent 50%),
       radial-gradient(at 100% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%);
     background-attachment: fixed;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-bold tracking-tight text-slate-900;
   }
 
@@ -81,6 +92,85 @@
   }
 }
 
+/* Dark mode overrides */
+@layer base {
+  body.dark-mode {
+    background-color: #0b1120;
+    color: #e2e8f0;
+    background-image: none;
+  }
+
+  body.dark-mode .bg-white {
+    background-color: #111827 !important;
+  }
+
+  body.dark-mode .bg-gray-50 {
+    background-color: #111827 !important;
+  }
+
+  body.dark-mode .bg-gray-100 {
+    background-color: #1f2937 !important;
+  }
+
+  body.dark-mode .bg-gray-200 {
+    background-color: #374151 !important;
+  }
+
+  body.dark-mode .text-gray-900,
+  body.dark-mode .text-gray-800,
+  body.dark-mode .text-gray-700 {
+    color: #e2e8f0 !important;
+  }
+
+  body.dark-mode .text-gray-500,
+  body.dark-mode .text-gray-400,
+  body.dark-mode .text-gray-300 {
+    color: #94a3b8 !important;
+  }
+
+  body.dark-mode .border-gray-100 {
+    border-color: #334155 !important;
+  }
+
+  body.dark-mode .border-gray-200 {
+    border-color: #475569 !important;
+  }
+
+  body.dark-mode .border-gray-300 {
+    border-color: #475569 !important;
+  }
+
+  body.dark-mode .border-gray-400 {
+    border-color: #64748b !important;
+  }
+
+  body.dark-mode .bg-primary {
+    background-color: #22c55e !important;
+  }
+
+  body.dark-mode .bg-primary-dark {
+    background-color: #16a34a !important;
+  }
+
+  body.dark-mode nav {
+    background-color: rgba(15, 23, 42, 0.95) !important;
+    border-color: rgba(71, 85, 105, 0.35) !important;
+  }
+
+  body.dark-mode .text-text {
+    color: #e2e8f0 !important;
+  }
+
+  body.dark-mode .text-primary {
+    color: #22c55e !important;
+  }
+
+  body.dark-mode .btn-outline {
+    border-color: #94a3b8 !important;
+    color: #e2e8f0 !important;
+  }
+}
+
 /* Utilities */
 @utility container {
   max-width: 1280px;
@@ -90,14 +180,26 @@
 
 /* Custom Animations */
 @keyframes float {
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
 }
 
 @keyframes slideUpFade {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .animate-float {
@@ -115,8 +217,8 @@
 
 .bg-mesh {
   background-color: #f8fafc;
-  background-image: 
-    radial-gradient(at 0% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%), 
+  background-image:
+    radial-gradient(at 0% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%),
     radial-gradient(at 50% 0%, hsla(202, 80%, 91%, 1) 0, transparent 50%),
     radial-gradient(at 100% 0%, hsla(161, 72%, 91%, 1) 0, transparent 50%);
 }
@@ -127,4 +229,4 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
+}

@@ -46,6 +46,18 @@ const plantService = {
     return response.data;
   },
 
+  changePassword: async (passwordData) => {
+    const response = await api.put("/auth/profile", passwordData);
+    return response.data;
+  },
+
+  deleteAccount: async (currentPassword) => {
+    const response = await api.delete("/auth/profile", {
+      data: { currentPassword },
+    });
+    return response.data;
+  },
+
   // Plant Disease Detection
   detectDisease: async (imageFile) => {
     const formData = new FormData();
